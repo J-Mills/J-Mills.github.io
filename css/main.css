@@ -1,5 +1,5 @@
 @font-face {
-  font-family: Avenir;
+  font-family: 'Avenir';
   src: url('fonts/Avenir.otf');
 }
 
@@ -21,7 +21,6 @@ html {
 .overlay {
   position: relative;
   display: block;
-  height: 100vh;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -96,6 +95,7 @@ html {
 .projects {
   position: relative;
 }
+
 /* ==========================================================================
    Author's custom styles
    ========================================================================== */
