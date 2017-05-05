@@ -1,0 +1,99 @@
+@font-face {
+  font-family: Avenir;
+  src: url('fonts/Avenir.otf');
+}
+
+html {
+  font-family: 'Avenir';
+}
+
+#particles-js {
+  background-color: #141211;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh;
+  width: 100vw;
+}
+
+.overlay {
+  position: relative;
+  display: block;
+  height: 100vh;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.body-header {
+  color: white;
+  font-size: 48pt;
+  font-family: 'Roboto', sans-serif;
+  text-align: center;
+}
+
+.body-subheader {
+  color: white;
+  font-size: 24pt;
+  font-family: 'Avenir';
+  text-align: center;
+}
+
+.body-paragraph {
+  color: white;
+  font-size: 14pt;
+  font-family: 'Avenir';
+  text-align: center;
+}
+
+.nav-main {
+  height: 100px;
+	position: absolute;
+	width: 100%;
+	bottom: 0px;
+	left: 0px;
+	padding: 0px;
+	margin: 0px;
+	text-align: center;
+  white-space: nowrap;
+}
+
+.nav-main ul {
+  width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+  border-top: 1px solid white;
+  text-align: center;
+  padding: 0px 0px 0px 0px;
+}
+
+.nav-main li {
+  display:inline-block;
+  margin-right: 20px;
+}
+
+.nav-main a {
+  display: block;
+  color: white;
+  text-transform: uppercase;
+  padding-top: 8px;
+  border-top: 3px solid transparent;
+  -o-transition:.5s;
+  -ms-transition:.5s;
+  -moz-transition:.5s;
+  -webkit-transition:.5s;
+}
+
+.nav-main a:hover {
+  border-top: 3px solid white;
+  text-decoration: none;
+}
+
+.projects {
+  position: relative;
+}
+/* ==========================================================================
+   Author's custom styles
+   ========================================================================== */
