@@ -7,43 +7,41 @@ html {
   font-family: 'Avenir';
 }
 
-#particles-js {
+body {
   background-color: #141211;
+}
+
+#particles-js {
   position: absolute;
+  display: block;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  height: 100vh;
-  width: 100vw;
+  z-index: 0;
+  height: 100%;
+  width: 100%;
 }
 
 .overlay {
   position: relative;
-  display: block;
-  left: 50%;
-  transform: translateX(-50%);
+  margin: 100px;
 }
 
 .body-header {
   color: white;
   font-size: 48pt;
   font-family: 'Roboto', sans-serif;
-  text-align: center;
 }
 
 .body-subheader {
   color: white;
   font-size: 24pt;
   font-family: 'Avenir';
-  text-align: center;
 }
 
 .body-paragraph {
   color: white;
   font-size: 14pt;
   font-family: 'Avenir';
-  text-align: center;
 }
 
 .icon-fa
