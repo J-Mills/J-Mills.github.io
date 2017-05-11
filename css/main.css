@@ -11,6 +11,12 @@ body {
   background-color: #141211;
 }
 
+canvas {
+  display: block;
+  position: absolute;
+  z-index: 0;
+}
+/*
 #particles-js {
   position: absolute;
   display: block;
@@ -19,11 +25,10 @@ body {
   z-index: 0;
   height: 100%;
   width: 100%;
-}
+}*/
 
 .overlay {
   position: relative;
-  margin: 100px;
 }
 
 .body-header {
