@@ -85,8 +85,6 @@ canvas {
 
 .nav-main {
   height: 100px;
-	position: absolute;
-	bottom: 0;
 	text-align: center;
   white-space: nowrap;
   left: 0;
@@ -95,7 +93,7 @@ canvas {
   margin-right: auto;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 800px) {
   .nav-main {
     height: 100px;
     text-align: center;
@@ -113,8 +111,6 @@ canvas {
   border-top: 1px solid white;
   text-align: center;
   padding: 0px 0px 0px 0px;
-  bottom: 50px;
-  position: absolute;
   left: 0;
   right: 0;
   margin-left: auto;
