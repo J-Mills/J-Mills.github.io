@@ -108,3 +108,43 @@ particlesJS('particles-js', {
   },
   'retina_detect': true
 });
+
+$(document).ready(function () {
+  $('#home-btn, #home-btn-fixed').click(function () {
+    $('html, body').animate({
+      scrollTop: $('#home').offset().top
+    }, 500);
+  });
+
+  $('#about-btn, #about-btn-fixed').click(function () {
+    $('html, body').animate({
+      scrollTop: $('#about').offset().top
+    }, 500);
+  });
+
+  $('#projects-btn, #projects-btn-fixed').click(function () {
+    $('html, body').animate({
+      scrollTop: $('#projects').offset().top
+    }, 500);
+  });
+
+  $('#contact-btn, #contact-btn-fixed').click(function () {
+    $('html, body').animate({
+      scrollTop: $('#contact').offset().top
+    }, 500);
+  });
+
+  $('#projects-btn').click(function () {
+    $('html, body').animate({
+      scrollTop: $('#projects').offset().top
+    }, 500);
+  });
+
+  $(window).scroll(function () {
+    $('.nav-main').css('opacity', 1 - $(window).scrollTop() / 1000);
+  });
+
+  $(window).scroll(function () {
+    $('.nav-fixed').css('opacity', 0 + $(window).scrollTop() / 1400);
+  });
+});

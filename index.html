@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css?family=Roboto:100" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400" rel="stylesheet">
 
+  <script src="https://use.fontawesome.com/c40a15b95c.js"></script>
   <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
   <script src="http://hdqwalls.com/wallpapers/gradient-texture-cubes.jpg"></script>
   <script src="js/vendor/bootstrap.min.js"></script>
@@ -19,43 +20,73 @@
 <body>
 <!-- PARTICLES -->
 <div id="particles-js"></div>
-
+<div class="nav-fixed">
+  <ul>
+    <li><a id="home-btn-fixed">Home</a></li>
+    <li><a id="about-btn-fixed">About</a></li>
+    <li><a id="projects-btn-fixed">Projects</a></li>
+    <li><a id="contact-btn-fixed">Contact</a></li>
+  </ul>
+</div>
 <!-- HEADER START -->
-<div class="overlay">
+<div id="home" class="overlay">
   <p class="body-header">Jack Mills</p>
   <p class="body-subheader">Web Developer</p>
   <p class="body-paragraph">
     Hi! I'm Jack Mills and I'm a web developer
     Lorem Ipsum and all that
     beautiful stuff
-    4 lines
-    5 lines
-    6 lines
   </p>
+  <img class="project-image center-block" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
+  <div class="social-links fa-2x text-center">
+    <ul>
+      <li><a href="#"><i class="fa fa-facebook-square"></i></a></li>
+      <li><a href="#"><i class="fa fa-github-square"></i></a></li>
+      <li><a href="#"><i class="fa fa-codepen"></i></a></li>
+      <li><a href="#"><i class="fa fa-twitter-square"></i></a></li>
+    </ul>
+  </div>
 
   <nav class="nav-main">
     <ul>
-      <li><a class="">Home</a></li>
-      <li><a class="">About</a></li>
-      <li><a class="">Projects</a></li>
-      <li><a class="">Contact</a></li>
-      <li><a class="">Test</a></li>
+      <li><a id="home-btn">Home</a></li>
+      <li><a id="about-btn">About</a></li>
+      <li><a id="projects-btn">Projects</a></li>
+      <li><a id="contact-btn">Contact</a></li>
+      <li><a id="">Test</a></li>
     </ul>
   </nav>
 </div>
 <!-- HEADER END -->
 
+<!-- ABOUT START -->
+<div id="about">
+
+</div>
+<!-- ABOUT END -->
+
 <!-- PROJECTS START -->
-<div class="projects">
-  <img class="project-image" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
-  <img class="project-image" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
-  <img class="project-image" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
-  <img class="project-image" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
+<div id="projects">
+  <p class="body-subheader">
+    Here are some projects I have worked on
+  </p>
+  <div class="container top-buffer">
+    <div class="row row-grid text-center image-hover">
+      <a href="#"><img class="project-image col-sm-4" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" /></a>
+      <img class="project-image col-sm-4" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
+      <img class="project-image col-sm-4" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
+      <img class="project-image col-sm-4" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
+      <img class="project-image col-sm-4" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
+      <img class="project-image col-sm-4" src="https://placeholdit.imgix.net/~text?txtsize=28&bg=0099ff&txtclr=ffffff&txt=300%C3%97300&w=300&h=300" />
+    </div>
+  </div>
 </div>
 <!-- PROJECTS END -->
 
 <!-- CONTACT START -->
+<div id="contact">
 
+</div>
 <!-- CONTACT END -->
 
 <!-- FOOTER START -->
@@ -66,6 +97,5 @@
   </footer>
 </div>
 <!-- FOOTER END -->
-<canvas class="background"></canvas>
 <script src="js/main.js"></script>
 </body>
