@@ -8,45 +8,46 @@ html {
 }
 
 body {
-  background-color: #141211;
+  background-color: #111111;
 }
 
 canvas {
   display: block;
   position: absolute;
   z-index: 0;
+  background-color: #111111;
 }
-/*
+
 #particles-js {
-  position: absolute;
-  display: block;
-  top: 0;
-  left: 0;
-  z-index: 0;
-  height: 100%;
-  width: 100%;
-}*/
+}
 
 .overlay {
   position: relative;
+  height: 100vh;
 }
 
 .body-header {
   color: white;
   font-size: 48pt;
   font-family: 'Roboto', sans-serif;
+  text-align: center;
+  padding-top: 75px;
 }
 
 .body-subheader {
   color: white;
   font-size: 24pt;
-  font-family: 'Avenir';
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 200;
+  text-align: center;
 }
 
 .body-paragraph {
   color: white;
   font-size: 14pt;
-  font-family: 'Avenir';
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 300;
+  text-align: center;
 }
 
 .icon-fa
@@ -54,28 +55,29 @@ canvas {
 .nav-main {
   height: 100px;
 	position: absolute;
-	width: 100%;
-	bottom: 0px;
-	left: 0px;
-	padding: 0px;
-	margin: 0px;
+	bottom: 0;
 	text-align: center;
   white-space: nowrap;
 }
 
 .nav-main ul {
-  width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 500px;
   display: block;
   border-top: 1px solid white;
   text-align: center;
   padding: 0px 0px 0px 0px;
+  bottom: 50px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .nav-main li {
   display:inline-block;
-  margin-right: 20px;
+  margin-right: 10px;
+  margin-left: 10px;
 }
 
 .nav-main a {
@@ -97,6 +99,7 @@ canvas {
 
 .projects {
   position: relative;
+  height: 100vh;
 }
 
 /* ==========================================================================
