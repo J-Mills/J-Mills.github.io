@@ -11,6 +11,10 @@ body {
   background-color: #111111;
 }
 
+html, body {
+  height: 100%;
+}
+
 canvas {
   display: block;
   position: absolute;
@@ -89,6 +93,18 @@ canvas {
   right: 0;
   margin-left: auto;
   margin-right: auto;
+}
+
+@media (max-width: 600px) {
+  .nav-main {
+    height: 100px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .nav-main ul {
+    width: 250px;
+  }
 }
 
 .nav-main ul {
@@ -173,6 +189,10 @@ canvas {
   text-decoration: none;
 }
 
+#about {
+  position: relative;
+}
+
 #projects {
   position: relative;
   height: 100%;
@@ -201,6 +221,16 @@ canvas {
 
 .image-hover a:hover img {
   opacity: .5;
+}
+
+#contact {
+  position: relative;
+}
+
+#footer {
+  position: relative;
+  bottom: 0px;
+  width: 100%;
 }
 
 /* ==========================================================================
