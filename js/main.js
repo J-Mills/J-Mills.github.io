@@ -1,7 +1,7 @@
 particlesJS('particles-js', {
   'particles': {
     'number': {
-      'value': 50,
+      'value': 75,
       'density': {
         'enable': true,
         'value_area': 700
@@ -140,9 +140,15 @@ $(document).ready(function () {
     }, 500);
   });
 
-  $(window).scroll(function () {
-    $('.nav-main').css('opacity', 1 - $(window).scrollTop() / 1000);
-  });
+  if ($(window).width() <= 600) {
+    $(window).scroll(function () {
+      $('.nav-main').css('opacity', 1 - $(window).scrollTop() / 2000);
+    });
+  } else {
+    $(window).scroll(function () {
+      $('.nav-main').css('opacity', 1 - $(window).scrollTop() / 1000);
+    });
+  };
 
   $(window).scroll(function () {
     $('.nav-fixed').css('opacity', 0 + $(window).scrollTop() / 1400);
