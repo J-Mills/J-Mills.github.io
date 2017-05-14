@@ -153,4 +153,18 @@ $(document).ready(function () {
   $(window).scroll(function () {
     $('.nav-fixed').css('opacity', 0 + $(window).scrollTop() / 1400);
   });
+
+  $(window).on('resize', function () {
+    if ($(window).width() <= 600) {
+      // Resize Social icons on mobile
+      $('social').removeClass('fa-2x');
+      $('#social').addClass('fa-3x');
+      // Hide navbar on mobile
+      $('#navbar-main').hide();
+    } else {
+      // Opposite effect of most methods above
+      $('#social').removeClass('fa-3x');
+      $('#navbar-main').show();
+    };
+  });
 });
