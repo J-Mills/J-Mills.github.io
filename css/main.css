@@ -1,5 +1,5 @@
 body {
-  background-color: #111111;
+  background-color: #222222;
 }
 
 html, body {
@@ -8,7 +8,7 @@ html, body {
 
 canvas {
   display: block;
-  position: absolute;
+  position: fixed;
   z-index: 0;
   background-color: #111111;
 }
@@ -87,18 +87,6 @@ canvas {
   position: relative;
 }
 
-@media (max-width: 800px) {
-  .nav-main {
-    height: 100px;
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .nav-main ul {
-    width: 250px;
-  }
-}
-
 .nav-main ul {
   width: 500px;
   display: block;
@@ -147,7 +135,7 @@ canvas {
   z-index: 1;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 800px) {
   .nav-fixed {
     right: 0px;
     left: 0px;
@@ -195,6 +183,7 @@ canvas {
 #projects {
   position: relative;
   min-height: 100%;
+  background-color: #222222;
 }
 
 .top-buffer {

@@ -155,7 +155,7 @@ $(document).ready(function () {
   });
 
   $(window).on('resize', function () {
-    if ($(window).width() <= 600) {
+    if ($(window).width() <= 800) {
       // Resize Social icons on mobile
       $('social').removeClass('fa-2x');
       $('#social').addClass('fa-3x');
@@ -167,4 +167,18 @@ $(document).ready(function () {
       $('#navbar-main').show();
     };
   });
+
+  // Compatibility for browsers which don't auto-resize
+  if ($(window).width() <= 800) {
+    // Resize Social icons on mobile
+    $('social').removeClass('fa-2x');
+    $('#social').addClass('fa-3x');
+    // Hide navbar on mobile
+    $('#navbar-main').hide();
+  } else {
+    // Opposite effect of most methods above
+    $('#social').removeClass('fa-3x');
+    $('#navbar-main').show();
+  };
+
 });
