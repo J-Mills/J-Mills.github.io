@@ -23,7 +23,7 @@ canvas {
 
 .overlay {
   position: relative;
-  min-height: 100%;
+  min-height: 110%;
 }
 
 .body-header {
