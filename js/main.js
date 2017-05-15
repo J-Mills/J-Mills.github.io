@@ -140,15 +140,9 @@ $(document).ready(function () {
     }, 500);
   });
 
-  if ($(window).width() <= 600) {
-    $(window).scroll(function () {
-      $('.nav-main').css('opacity', 1 - $(window).scrollTop() / 2000);
-    });
-  } else {
-    $(window).scroll(function () {
-      $('.nav-main').css('opacity', 1 - $(window).scrollTop() / 1000);
-    });
-  };
+  $(window).scroll(function () {
+    $('.nav-main').css('opacity', 1 - $(window).scrollTop() / 1000);
+  });
 
   $(window).scroll(function () {
     $('.nav-fixed').css('opacity', 0 + $(window).scrollTop() / 1400);
@@ -159,7 +153,7 @@ $(document).ready(function () {
       // Resize Social icons on mobile
       $('social').removeClass('fa-2x');
       $('#social').addClass('fa-3x');
-      // Hide navbar on mobile
+      // Hide navbars on mobile
       $('#navbar-main').hide();
     } else {
       // Opposite effect of most methods above
@@ -173,12 +167,23 @@ $(document).ready(function () {
     // Resize Social icons on mobile
     $('social').removeClass('fa-2x');
     $('#social').addClass('fa-3x');
-    // Hide navbar on mobile
+    // Hide navbars on mobile
     $('#navbar-main').hide();
   } else {
     // Opposite effect of most methods above
     $('#social').removeClass('fa-3x');
     $('#navbar-main').show();
+  };
+
+  // Hide fixed navbar if it'll overlap with text
+  $(window).on('resize', function () {
+    if ($(window).width() <= 1080) {
+      $('#navbar-fixed').hide();
+    };
+  });
+
+  if ($(window).width() <= 1080) {
+    $('#navbar-fixed').hide();
   };
 
 });

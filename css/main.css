@@ -176,18 +176,28 @@ canvas {
   text-decoration: none;
 }
 
+.navbar-fixed .highlight {
+  border-bottom: 3px solid white;
+  text-decoration: none;
+}
+
 #about {
   position: relative;
+  min-height: 100%;
+  background-color: #161616;
 }
 
 #projects {
   position: relative;
   min-height: 100%;
-  background-color: #222222;
+  background-color: #1c1c1c;
 }
 
 .top-buffer {
   padding-top: 30px;
+}
+
+.project-image {
 }
 
 .row.row-grid [class*="col-"] {
