@@ -31,7 +31,12 @@ canvas {
   font-size: 60pt;
   font-family: 'Roboto', sans-serif;
   text-align: center;
-  margin-top: 200px;
+}
+
+@media (min-width: 1000px) {
+  .body-header {
+    margin-top: 200px;
+  }
 }
 
 .body-subheader {
