@@ -1,5 +1,5 @@
 body {
-  background-color: #222222;
+  background-color: #FFFFFF;
 }
 
 html, body {
@@ -222,6 +222,7 @@ canvas {
   position: relative;
   width: 100%;
   margin-bottom: 15px;
+  color: white;
 }
 
 /* ==========================================================================
