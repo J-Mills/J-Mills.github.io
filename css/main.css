@@ -28,20 +28,21 @@ canvas {
 
 .body-header {
   color: white;
-  font-size: 60pt;
+  font-size: 48pt;
   font-family: 'Roboto', sans-serif;
   text-align: center;
 }
 
 @media (min-width: 1000px) {
   .body-header {
+    font-size: 60pt;
     margin-top: 200px;
   }
 }
 
 .body-subheader {
   color: white;
-  font-size: 24pt;
+  font-size: 28pt;
   font-family: 'Source Sans Pro', sans-serif;
   font-weight: 200;
   text-align: center;
@@ -56,8 +57,9 @@ canvas {
 }
 
 .body-paragraph-container {
-  margin-left: 300px;
-  margin-right: 300px;
+  max-width: 500px;
+  margin: auto;
+  margin-top: 25px;
 }
 
 .social-links {
