@@ -10,7 +10,6 @@ canvas {
   display: block;
   position: fixed;
   z-index: 0;
-  background-color: #111111;
 }
 
 #particles-js {
@@ -28,7 +27,7 @@ canvas {
 
 .body-header {
   color: white;
-  font-size: 48pt;
+  font-size: 40pt;
   font-family: 'Roboto', sans-serif;
   text-align: center;
 }
@@ -91,13 +90,18 @@ canvas {
 }
 
 .social-links a:hover {
-  color: white;
+  color: #33e3f5;
 }
 
 .nav-main {
   height: 100px;
 	text-align: center;
-  position: relative;
+  position: absolute;
+  bottom: 100px;
+  left: 0;
+  right: 0;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .nav-main ul {
