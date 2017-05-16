@@ -1,6 +1,5 @@
 body {
   background-color: #111111;
-  z-index: -1;
 }
 
 html, body {
@@ -29,9 +28,10 @@ canvas {
 
 .body-header {
   color: white;
-  font-size: 48pt;
+  font-size: 60pt;
   font-family: 'Roboto', sans-serif;
   text-align: center;
+  margin-top: 200px;
 }
 
 .body-subheader {
@@ -48,6 +48,11 @@ canvas {
   font-family: 'Source Sans Pro', sans-serif;
   font-weight: 300;
   text-align: center;
+}
+
+.body-paragraph-container {
+  margin-left: 300px;
+  margin-right: 300px;
 }
 
 .social-links {
@@ -199,6 +204,23 @@ canvas {
 }
 
 .project-image {
+  z-index: 0;
+}
+
+.project-image-overlay {
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  opacity: 0.5;
+}
+
+.caption {
+  position: absolute;
+  top: 80%;
+  left: 0;
+  width: 100%;
+  opacity: 0;
 }
 
 .row.row-grid [class*="col-"] {
@@ -213,6 +235,11 @@ canvas {
 
 .image-hover a:hover img {
   opacity: .5;
+}
+
+.image-hover p {
+  position: absolute;
+  top: 50%;
 }
 
 #contact {
