@@ -1,5 +1,5 @@
 body {
-  background-color: #FFFFFF00;
+  background-color: #00FF00;
 }
 
 html, body {
@@ -14,7 +14,7 @@ canvas {
 }
 
 #particles-js {
-  z-index: -10;
+  z-index: 0;
 }
 
 #home {
