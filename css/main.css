@@ -1,5 +1,6 @@
 body {
   background-color: #00FF00;
+  z-index: -1;
 }
 
 html, body {
@@ -23,7 +24,7 @@ canvas {
 
 .overlay {
   position: relative;
-  min-height: 110%;
+  min-height: 100%;
 }
 
 .body-header {
