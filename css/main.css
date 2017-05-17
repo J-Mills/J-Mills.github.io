@@ -52,7 +52,7 @@ canvas {
   font-size: 22pt;
   font-family: 'Source Sans Pro', sans-serif;
   font-weight: 300;
-  text-align: center;
+  text-align: left;
 }
 
 .body-paragraph-subheader {
@@ -60,7 +60,7 @@ canvas {
   font-size: 18pt;
   font-family: 'Source Sans Pro', sans-serif;
   font-weight: 200;
-  text-align: center;
+  text-align: left;
 }
 
 .body-paragraph {
@@ -68,7 +68,15 @@ canvas {
   font-size: 14pt;
   font-family: 'Source Sans Pro', sans-serif;
   font-weight: 300;
-  text-align: center;
+  text-align: left;
+}
+
+.body-paragraph-heavy {
+  color: white;
+  font-size: 14pt;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 400;
+  text-align: left;
 }
 
 .body-paragraph-container {
@@ -223,7 +231,7 @@ canvas {
 
 #projects {
   position: relative;
-  min-height: 100%;
+  height: auto;
   background-color: #1c1c1c;
   padding-bottom: 30px;
 }
