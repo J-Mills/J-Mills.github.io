@@ -210,7 +210,7 @@ particlesJS('particles-js2', {
         'duration': 0.4
       },
       'push': {
-        'particles_nb': 3
+        'particles_nb': 1
       },
       'remove': {
         'particles_nb': 2
@@ -296,5 +296,4 @@ $(document).ready(function () {
   if ($(window).width() <= 1080) {
     $('#navbar-fixed').hide();
   };
-
 });
