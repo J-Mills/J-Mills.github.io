@@ -272,14 +272,6 @@ u {
   opacity: 0.5;
 }
 
-.caption {
-  position: absolute;
-  top: 80%;
-  left: 0;
-  width: 100%;
-  opacity: 0;
-}
-
 .row.row-grid [class*="col-"] {
   margin-top: 25px;
 }
