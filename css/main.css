@@ -249,6 +249,29 @@ u {
   padding-bottom: 30px;
 }
 
+.current-projects {
+  color: white;
+  font-size: 14pt;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 300;
+  text-align: left;
+  padding-left: 20px;
+  list-style-type: square;
+}
+
+.project-link {
+  color: #777777;
+  font-size: 14pt;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.project-link:hover {
+  color: #33e3f5;
+  text-decoration: none;
+}
+
 #projects {
   position: relative;
   height: auto;
