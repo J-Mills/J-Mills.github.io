@@ -17,6 +17,10 @@ u {
   border-bottom: 1px solid white;
 }
 
+.terminal-colour {
+  color: #33e3f5;
+}
+
 #particles-js {
   z-index: 0;
 }
@@ -188,6 +192,17 @@ u {
 .nav-main a:hover {
   border-top: 3px solid white;
   text-decoration: none;
+}
+
+.nav-main i {
+  -o-transition:.5s;
+  -ms-transition:.5s;
+  -moz-transition:.5s;
+  -webkit-transition:.5s;
+}
+
+.nav-main a:hover > i {
+  color: #33e3f5;
 }
 
 .nav-fixed {
