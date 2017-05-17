@@ -47,6 +47,14 @@ canvas {
   margin-left: 30px;
 }
 
+.body-paragraph {
+  color: white;
+  font-size: 14pt;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 300;
+  text-align: left;
+}
+
 .body-paragraph-header {
   color: white;
   font-size: 22pt;
@@ -60,14 +68,6 @@ canvas {
   font-size: 18pt;
   font-family: 'Source Sans Pro', sans-serif;
   font-weight: 200;
-  text-align: left;
-}
-
-.body-paragraph {
-  color: white;
-  font-size: 14pt;
-  font-family: 'Source Sans Pro', sans-serif;
-  font-weight: 300;
   text-align: left;
 }
 
