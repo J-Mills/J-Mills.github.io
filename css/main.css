@@ -317,14 +317,6 @@ u {
   text-decoration: none;
   /*TODO: Smooth hover animation*/
 }
-
-#footer {
-  position: relative;
-  width: 100%;
-  margin-bottom: 15px;
-  color: white;
-}
-
 /* ==========================================================================
    Author's custom styles
    ========================================================================== */
