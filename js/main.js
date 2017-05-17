@@ -288,12 +288,12 @@ $(document).ready(function () {
 
   // Hide fixed navbar if it'll overlap with text
   $(window).on('resize', function () {
-    if ($(window).width() <= 1080) {
+    if ($(window).width() <= 768) {
       $('#navbar-fixed').hide();
     };
   });
 
-  if ($(window).width() <= 1080) {
+  if ($(window).width() <= 768) {
     $('#navbar-fixed').hide();
   };
 });
