@@ -292,7 +292,7 @@ canvas {
 .contact-email a:hover {
   color: #33e3f5;
   text-decoration: none;
-  /*TODO: Smooth the hover animation*/
+  /*TODO: Smooth hover animation*/
 }
 
 #footer {
