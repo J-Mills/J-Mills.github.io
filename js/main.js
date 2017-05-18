@@ -261,7 +261,6 @@ $(document).ready(function () {
     $(this)
       .delay(fadeInDiv * 500)
       .css('opacity', 0)
-      .slideDown('slow')
       .animate(
         { opacity: 1 },
         { queue: true, duration: 'slow' }

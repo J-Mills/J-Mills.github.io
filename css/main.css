@@ -289,6 +289,15 @@ u {
   text-decoration: none;
 }
 
+.project-link:visited {
+  color: #fc6fd9;
+}
+
+.project-link:visited:hover {
+  color: #33e3f5;
+  text-decoration: none;
+}
+
 #projects {
   position: relative;
   height: auto;
