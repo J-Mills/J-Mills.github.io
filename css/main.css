@@ -301,7 +301,7 @@ u {
 #projects {
   position: relative;
   height: auto;
-  background-color: #1c1c1c;
+  background-color: rgba(28, 28, 28, 0.85);
   padding-bottom: 30px;
 }
 
@@ -311,6 +311,8 @@ u {
 
 .project-image {
   z-index: 0;
+  border: 1px solid #777777;
+  border-radius: 8px;
 }
 
 .project-image-overlay {
