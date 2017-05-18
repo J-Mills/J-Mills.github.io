@@ -39,6 +39,7 @@ u {
   font-size: 40pt;
   font-family: 'Roboto', sans-serif;
   text-align: center;
+  margin-top: 30px;
 }
 
 @media (min-width: 1000px) {
@@ -217,15 +218,6 @@ u {
   z-index: 1;
 }
 
-@media (max-width: 800px) {
-  .nav-fixed {
-    right: 0px;
-    left: 0px;
-    margin-left: 0 auto;
-    margin-right: 0 auto;
-  }
-}
-
 .nav-fixed ul {
   width: 300px;
   display: block;
@@ -286,6 +278,10 @@ u {
   font-family: 'Source Sans Pro', sans-serif;
   font-weight: 400;
   cursor: pointer;
+  -o-transition:.15s;
+  -ms-transition:.15s;
+  -moz-transition:.15s;
+  -webkit-transition:.15s;
 }
 
 .project-link:hover {
@@ -346,6 +342,10 @@ u {
   font-family: 'Source Sans Pro', sans-serif;
   font-weight: 400;
   cursor: pointer;
+  -o-transition:.15s;
+  -ms-transition:.15s;
+  -moz-transition:.15s;
+  -webkit-transition:.15s;
 }
 
 .contact-email a:hover {

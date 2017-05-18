@@ -221,6 +221,7 @@ particlesJS('particles-js2', {
 });
 
 $(document).ready(function () {
+  // Navigation bar smooth scrolling
   $('#home-btn, #home-btn-fixed').click(function () {
     $('html, body').animate({
       scrollTop: $('#home').offset().top
@@ -251,14 +252,32 @@ $(document).ready(function () {
     }, 500);
   });
 
+  /*
+  $('#name, #title, #description, #social').each(function (fadeInDiv) {
+    $(this).delay(fadeInDiv * 500).fadeIn(1000);
+  });*/
+
+  $('#name, #title, #description, #social').each(function (fadeInDiv) {
+    $(this)
+      .delay(fadeInDiv * 500)
+      .css('opacity', 0)
+      .slideDown('slow')
+      .animate(
+        { opacity: 1 },
+        { queue: true, duration: 'slow' }
+      );
+  });
+
+  // Fade out and fade in navbars after scrolling
   $(window).scroll(function () {
     $('.nav-main').css('opacity', 1 - $(window).scrollTop() / 1000);
   });
 
   $(window).scroll(function () {
-    $('.nav-fixed').css('opacity', 0 + $(window).scrollTop() / 1400);
+    $('.nav-fixed').css('opacity', 0 + $(window).scrollTop() / 800);
   });
 
+  // Media queries
   $(window).on('resize', function () {
     if ($(window).width() <= 800) {
       // Resize Social icons on mobile
@@ -288,12 +307,12 @@ $(document).ready(function () {
 
   // Hide fixed navbar if it'll overlap with text
   $(window).on('resize', function () {
-    if ($(window).width() <= 768) {
+    if ($(window).width() <= 750) {
       $('#navbar-fixed').hide();
     };
   });
 
-  if ($(window).width() <= 768) {
+  if ($(window).width() <= 750) {
     $('#navbar-fixed').hide();
   };
 });
