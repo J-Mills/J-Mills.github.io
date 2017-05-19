@@ -246,9 +246,9 @@ $(document).ready(function () {
     }, 500);
   });
 
-  $('#projects-btn').click(function () {
+  $('#arrow-btn').click(function () {
     $('html, body').animate({
-      scrollTop: $('#projects').offset().top
+      scrollTop: $('#about').offset().top
     }, 500);
   });
 
