@@ -10,7 +10,7 @@ window.addEventListener('keydown', function (e) {
   key.classList.add('playing');
   setTimeout(function () {
     key.classList.remove('playing');
-  }, 1000);
+  }, 70);
 });
 
 function removeTransition (e) {
