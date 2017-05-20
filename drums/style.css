@@ -1,12 +1,15 @@
 html {
   font-size: 10px;
-  background: url(https://images8.alphacoders.com/374/374816.jpg) bottom center;
+  background: url(https://images8.alphacoders.com/374/374816.jpg) bottom center no-repeat;
   background-size: cover;
 }
 body,html {
   margin: 0;
   padding: 0;
   font-family: sans-serif;
+}
+
+body {
 }
 
 .keys {
@@ -19,7 +22,7 @@ body,html {
 
 .key {
   border: .4rem solid black;
-  border-radius: 10jrem;
+  border-radius: 10rem;
   margin: 1rem;
   font-size: 1.5rem;
   padding: 1rem .5rem;
@@ -47,4 +50,29 @@ kbd {
   text-transform: uppercase;
   letter-spacing: .1rem;
   color: #00ffc2;
+}
+
+.home-button {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+}
+
+.social-links li {
+  display: inline-block;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.social-links a {
+  display: block;
+  color: #777777;
+  -o-transition:.2s ease-out;
+  -ms-transition:.2s ease-out;
+  -moz-transition:.2s ease-out;
+  -webkit-transition:.2s ease-out;
+}
+
+.social-links a:hover {
+  color: #33e3f5;
 }
