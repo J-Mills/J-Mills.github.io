@@ -9,9 +9,6 @@ body,html {
   font-family: sans-serif;
 }
 
-body {
-}
-
 .keys {
   display: flex;
   flex: 1;
@@ -62,6 +59,7 @@ kbd {
   display: inline-block;
   cursor: pointer;
   margin-right: 10px;
+  text-decoration: none;
 }
 
 .social-links a {
