@@ -2,6 +2,7 @@ html {
   font-size: 10px;
   background: url(https://images8.alphacoders.com/374/374816.jpg) bottom center no-repeat;
   background-size: cover;
+  touch-action: manipulation;
 }
 body,html {
   margin: 0;
