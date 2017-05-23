@@ -1,5 +1,4 @@
 window.addEventListener('keydown', function (e) {
-  console.log(e.keyCode);
   const key = document.querySelector(`.key[data-key='${e.keyCode}']`);
   const audio = document.querySelector(`audio[data-key='${e.keyCode}']`);
 
@@ -12,6 +11,12 @@ window.addEventListener('keydown', function (e) {
     key.classList.remove('playing');
   }, 70);
 });
+
+function playSound (melody) {
+  var sound = new Audio("sounds/" + melody + '.wav');
+  console.log(sound);
+  sound.play();
+}
 
 function removeTransition (e) {
   if (e.propertyName !== 'transform') return;
