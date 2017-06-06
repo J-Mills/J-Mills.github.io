@@ -315,8 +315,12 @@ u {
   border-radius: 8px;
 }
 
-.row.row-grid [class*="col-"] {
+/*.row.row-grid [class*="col-"] {
   margin-top: 25px;
+}*/
+
+.mt-10 {
+  margin-top: 10px;
 }
 
 .image-hover a img {
