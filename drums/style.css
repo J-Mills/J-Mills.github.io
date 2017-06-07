@@ -8,12 +8,17 @@ body,html {
   margin: 0;
   padding: 0;
   font-family: sans-serif;
+  min-height: 100vh;
+}
+
+.top-buffer-200 {
+  margin-top: 400px;
 }
 
 .keys {
   display: flex;
   flex: 1;
-  min-height: 100vh;
+  /*min-height: 100vh;*/
   align-items: center;
   justify-content: center;
 }
