@@ -255,6 +255,29 @@ u {
   text-decoration: none;
 }
 
+.bubbles-button {
+  position: absolute;
+  bottom: 25px;
+  left: 25px;
+}
+
+.bubbles-button a {
+  color: #444444;
+  font-size: 10pt;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 400;
+  cursor: pointer;
+  -o-transition:.15s;
+  -ms-transition:.15s;
+  -moz-transition:.15s;
+  -webkit-transition:.15s;
+}
+
+.bubbles-button a:hover {
+  color: #33e3f5;
+  text-decoration: none;
+}
+
 #about {
   position: relative;
   height: auto;

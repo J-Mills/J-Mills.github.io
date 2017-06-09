@@ -253,6 +253,11 @@ $(document).ready(function () {
   });
 
   /*
+  $('#bubble-refresh').click(function () {
+    $('#particles-js').remove();
+  });*/
+
+  /*
   $('#name, #title, #description, #social').each(function (fadeInDiv) {
     $(this).delay(fadeInDiv * 500).fadeIn(1000);
   });*/
