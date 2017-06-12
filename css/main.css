@@ -42,7 +42,7 @@ u {
   margin-top: 30px;
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 1100px) and (min-height: 900px) {
   .body-header {
     font-size: 60pt;
     margin-top: 200px;
@@ -131,15 +131,20 @@ u {
 
 .social-links a {
   display: block;
-  color: #777777;
-  -o-transition:.2s ease-out;
+  color: white;
+  /*-o-transition:.2s ease-out;
   -ms-transition:.2s ease-out;
   -moz-transition:.2s ease-out;
-  -webkit-transition:.2s ease-out;
+  -webkit-transition:.2s ease-out;*/
 }
 
 .social-links a:hover {
   color: #33e3f5;
+}
+
+.social-links a:not(:hover) {
+  opacity: .25;
+  transition: 1s;
 }
 
 .nav-main {
@@ -410,8 +415,8 @@ u {
   z-index: 100;
   text-decoration: none;
   text-shadow: 0;
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
   border-bottom: 2px solid #fff;
   border-right: 2px solid #fff;
   -webkit-transform: translate(-50%, 0%) rotate(45deg);

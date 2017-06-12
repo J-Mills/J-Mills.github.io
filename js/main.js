@@ -252,10 +252,9 @@ $(document).ready(function () {
     }, 500);
   });
 
-  /*
   $('#bubble-refresh').click(function () {
-    $('#particles-js').remove();
-  });*/
+    $('#particles-js').hide();
+  }, 1000);
 
   /*
   $('#name, #title, #description, #social').each(function (fadeInDiv) {
