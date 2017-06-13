@@ -286,11 +286,13 @@ $(document).ready(function () {
       // Resize Social icons on mobile
       $('social').removeClass('fa-2x');
       $('#social').addClass('fa-3x');
+      $('#social-link-1, #social-link-2, #social-link-3, #social-link-4').removeClass('social-links-spacing');
       // Hide navbars on mobile
       $('#navbar-main').hide();
     } else {
       // Opposite effect of most methods above
       $('#social').removeClass('fa-3x');
+      $('#social-link-1, #social-link-2, #social-link-3, #social-link-4').addClass('social-links-spacing');
       $('#navbar-main').show();
     };
   });
@@ -300,11 +302,13 @@ $(document).ready(function () {
     // Resize Social icons on mobile
     $('social').removeClass('fa-2x');
     $('#social').addClass('fa-3x');
+    $('#social-link-1, #social-link-2, #social-link-3, #social-link-4').removeClass('social-links-spacing');
     // Hide navbars on mobile
     $('#navbar-main').hide();
   } else {
     // Opposite effect of most methods above
     $('#social').removeClass('fa-3x');
+    $('#social-link-1, #social-link-2, #social-link-3, #social-link-4').addClass('social-links-spacing');
     $('#navbar-main').show();
   };
 

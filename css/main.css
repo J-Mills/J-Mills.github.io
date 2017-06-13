@@ -126,6 +126,9 @@ u {
 .social-links li {
   display: inline-block;
   cursor: pointer;
+}
+
+.social-links-spacing {
   margin-right: 10px;
 }
 
