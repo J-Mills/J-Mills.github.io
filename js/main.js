@@ -252,10 +252,6 @@ $(document).ready(function () {
     }, 500);
   });
 
-  $('#bubble-refresh').click(function () {
-    $('#particles-js').hide();
-  }, 1000);
-
   /*
   $('#name, #title, #description, #social').each(function (fadeInDiv) {
     $(this).delay(fadeInDiv * 500).fadeIn(1000);
