@@ -75,7 +75,7 @@ particlesJS('particles-js', {
         'mode': 'repulse'
       },
       'onclick': {
-        'enable': true,
+        'enable': false,
         'mode': 'push'
       },
       'resize': true
@@ -112,7 +112,7 @@ particlesJS('particles-js', {
 particlesJS('particles-js2', {
   'particles': {
     'number': {
-      'value': 10,
+      'value': 5,
       'density': {
         'enable': true,
         'value_area': 700
@@ -186,7 +186,7 @@ particlesJS('particles-js2', {
         'mode': 'repulse'
       },
       'onclick': {
-        'enable': true,
+        'enable': false,
         'mode': 'push'
       },
       'resize': true
