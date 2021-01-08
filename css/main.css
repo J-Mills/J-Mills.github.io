@@ -1,5 +1,9 @@
 body {
   background-color: #111111;
+  font-family: 'papyrus';
+  color: white;
+  font-size: 50px;
+  font-weight: 700;
 }
 
 html, body {
@@ -471,6 +475,8 @@ u {
     opacity: 0;
   }
 }
-/* ==========================================================================
-   Author's custom styles
-   ========================================================================== */
+
+#3d-dice {
+  position: absolute;
+  z-index: -1;
+}
