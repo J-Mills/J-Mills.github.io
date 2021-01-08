@@ -62,7 +62,7 @@ var loader = new THREE.GLTFLoader();
 
 loader.crossOrigin = true;
 
-loader.load('./3D/dice2345.gltf', function ( data ) {
+loader.load('../3D/dice2345.gltf', function ( data ) {
     var object = data.scene;
     object.position.set(0, 0, 0);
     // object.scale.set(0.5,0.5,0.5);
