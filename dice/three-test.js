@@ -13,7 +13,7 @@ scene.background = new THREE.Color(0x111111);
 
 // CAMERA
 var camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 800 );
-camera.position.set(1,5,5);
+camera.position.set(2, 10, 10);
 
 /* ////////////////////////////////////////// */
 
@@ -28,30 +28,37 @@ document.getElementById('3d-dice').appendChild(renderer.domElement);
 /* ////////////////////////////////////////// */
 
 // Camera Rotation Control
-var controls = new THREE.OrbitControls( camera );
+// var controls = new THREE.OrbitControls( camera );
+var controls = new THREE.TrackballControls(camera);
 
-controls.rotateSpeed = 0.2;
-controls.zoomSpeed = 0.9;
+controls.rotateSpeed = 5;
+// controls.zoomSpeed = 0.9;
 
-controls.minDistance = 3;
-controls.maxDistance = 20;
+// controls.minDistance = 3;
+// controls.maxDistance = 20;
 
-controls.minPolarAngle = -1; // radians
-// controls.maxPolarAngle = Math.PI /2; // radians
-// controls.maxPolarAngle = -1; // radians
+// controls.minPolarAngle = 0; // radians
+// controls.maxPolarAngle = Math.PI * 100; // radians
+// controls.maxPolarAngle = 1; // radian
 
-controls.enableDamping = true;
-controls.dampingFactor = 0.025;
+// controls.enableDamping = true;
+// controls.dampingFactor = 5;
 
+controls.dynamicDampingFactor = 0.1;
+controls.noPan = true;
+controls.noZoom = true;
+
+// controls.autoRotate = true;
+// controls.autoRotateSpeed = 0.1;
 
 /* /////////////////////////////////////////////// */
 
 // Point Light
-var light = new THREE.PointLight( 0xff0000, 1, 200 );
+var light = new THREE.PointLight( 0xffffff, 2, 200 );
 light.position.set( 3, 20, 20 );
 // scene.add( light );
 
-var light2 = new THREE.AmbientLight( 0x0000ff, 0.25, 200 );
+var light2 = new THREE.AmbientLight( 0x000033, 1, 200 );
 light2.position.set( 30, -10, 30 );
 // scene.add( light2 );
 
@@ -62,7 +69,7 @@ var loader = new THREE.GLTFLoader();
 
 loader.crossOrigin = true;
 
-loader.load('../3D/dice2345.gltf', function ( data ) {
+loader.load('../3D/Dice_Textured_RW.gltf', function ( data ) {
     var object = data.scene;
     object.position.set(0, 0, 0);
     // object.scale.set(0.5,0.5,0.5);
@@ -72,7 +79,6 @@ loader.load('../3D/dice2345.gltf', function ( data ) {
 /* //////////////////////////////////////// */
 
 // New Group
-
 let lightLoader = new THREE.Group();
 lightLoader.add(light);
 lightLoader.add(light2);
