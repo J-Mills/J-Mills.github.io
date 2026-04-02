@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dice Climb Simulator</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -10,7 +11,7 @@
             font-family: system-ui, sans-serif;
             background: #f4f4f4;
             color: #222;
-            padding: 2rem;
+            padding: 1rem;
         }
 
         h1 { margin-bottom: 1.5rem; font-size: 1.4rem; }
@@ -19,6 +20,21 @@
             display: flex;
             gap: 2rem;
             align-items: flex-start;
+        }
+
+        @media (max-width: 600px) {
+            .layout {
+                flex-direction: column;
+            }
+
+            .controls {
+                width: 100%;
+                min-width: unset;
+            }
+
+            th, td {
+                padding: 0.5rem 0.6rem;
+            }
         }
 
         .controls {
