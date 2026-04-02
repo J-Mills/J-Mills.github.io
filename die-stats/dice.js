@@ -109,6 +109,61 @@ const STRATEGIES = {
 // --- UI ---
 
 let lastRows = [];
+let sortCol = 0;
+let sortDir = 1; // 1 = asc, -1 = desc
+
+function sortValue(val) {
+  const n = parseFloat(val);
+  return isNaN(n) ? val : n;
+}
+
+function renderTable() {
+  const cols = [
+    'Starting Strength',
+    'Target Height',
+    'Win %',
+    'Exp. Win Round',
+    'Avg Str Left',
+    'Avg Rounds',
+  ];
+
+  const rows = [...lastRows];
+  if (sortCol !== null) {
+    rows.sort((a, b) => {
+      const av = sortValue(a[cols[sortCol]]);
+      const bv = sortValue(b[cols[sortCol]]);
+      if (av < bv) return -sortDir;
+      if (av > bv) return sortDir;
+      return 0;
+    });
+  }
+
+  const thead = `<thead><tr>${cols
+    .map((c, i) => {
+      const arrow = sortDir === 1 ? '▲' : '▼';
+      const indicator = `<span style="font-size:0.6em;opacity:${sortCol === i ? 1 : 0.25};margin-left:0.3em">${arrow}</span>`;
+      return `<th style="cursor:pointer;user-select:none" data-col="${i}">${c}${indicator}</th>`;
+    })
+    .join('')}</tr></thead>`;
+  const tbody = `<tbody>${rows
+    .map((row) => `<tr>${cols.map((c) => `<td>${row[c]}</td>`).join('')}</tr>`)
+    .join('')}</tbody>`;
+
+  const table = document.getElementById('results');
+  table.innerHTML = thead + tbody;
+  table.querySelector('thead').addEventListener('click', (e) => {
+    const th = e.target.closest('th');
+    if (!th) return;
+    const col = Number(th.dataset.col);
+    if (sortCol === col) {
+      sortDir *= -1;
+    } else {
+      sortCol = col;
+      sortDir = 1;
+    }
+    renderTable();
+  });
+}
 
 function update() {
   const steadyDie = parseDie(document.getElementById('steady').value);
@@ -165,19 +220,7 @@ function update() {
     }
   }
 
-  const cols = [
-    'Starting Strength',
-    'Target Height',
-    'Win %',
-    'Exp. Win Round',
-    'Avg Str Left',
-    'Avg Rounds',
-  ];
-  const thead = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join('')}</tr></thead>`;
-  const tbody = `<tbody>${lastRows
-    .map((row) => `<tr>${cols.map((c) => `<td>${row[c]}</td>`).join('')}</tr>`)
-    .join('')}</tbody>`;
-  document.getElementById('results').innerHTML = thead + tbody;
+  renderTable();
 }
 
 function saveCSV() {
