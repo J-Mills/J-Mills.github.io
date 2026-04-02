@@ -156,7 +156,7 @@ function update() {
       lastRows.push({
         'Starting Strength': strStart,
         'Target Height': target,
-        'Win %': (result.winProb * 100).toFixed(4) + '%',
+        'Win %': (result.winProb * 100).toFixed(1) + '%',
         'Exp. Win Round': formatWinRound(result),
         'Avg Str Left':
           result.avgStrLeft !== null ? result.avgStrLeft.toFixed(2) : 'N/A',
