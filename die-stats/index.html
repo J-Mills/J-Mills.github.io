@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dice Climb Simulator</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f4f4f4;
+            color: #222;
+            padding: 2rem;
+        }
+
+        h1 { margin-bottom: 1.5rem; font-size: 1.4rem; }
+
+        .layout {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+
+        .controls {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1.25rem;
+            min-width: 280px;
+        }
+
+        .controls h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            margin-bottom: 0.75rem;
+        }
+
+        .controls section + section { margin-top: 1.25rem; }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 0.6rem;
+        }
+
+        .field label {
+            font-size: 0.8rem;
+            color: #555;
+            margin-bottom: 0.2rem;
+        }
+
+        .field input[type="text"],
+        .field select {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .field input[type="text"]:focus,
+        .field select:focus {
+            outline: none;
+            border-color: #5b8dee;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .slider-row input[type="range"] { flex: 1; }
+
+        .slider-val {
+            font-size: 0.9rem;
+            min-width: 1.5rem;
+            text-align: right;
+        }
+
+        .results {
+            flex: 1;
+        }
+
+        #stats {
+            font-size: 0.85rem;
+            color: #555;
+            margin-bottom: 0.75rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: 0.9rem;
+        }
+
+        thead { background: #f0f0f0; }
+
+        th, td {
+            padding: 0.6rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th { font-weight: 600; font-size: 0.8rem; }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        button {
+            margin-top: 1rem;
+            padding: 0.5rem 1.25rem;
+            background: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        button:hover { background: #43a047; }
+    </style>
+</head>
+<body>
+    <h1>Dice Climb Simulator</h1>
+
+    <div class="layout">
+        <div class="controls">
+            <section>
+                <h3>Dice Faces</h3>
+                <div class="field">
+                    <label>Steady die</label>
+                    <input type="text" id="steady" value="0,1,1,1,2,2">
+                </div>
+                <div class="field">
+                    <label>Risky die</label>
+                    <input type="text" id="risky" value="0,0,0,2,3,3">
+                </div>
+                <div class="field">
+                    <label>Exhaustion die</label>
+                    <input type="text" id="exhaust" value="1,1,1,2,2,2">
+                </div>
+            </section>
+
+            <section>
+                <h3>Game Parameters</h3>
+                <div class="field">
+                    <label>Starting Strengths</label>
+                    <input type="text" id="strengths" value="3,5,7,10">
+                </div>
+                <div class="field">
+                    <label>Target Heights</label>
+                    <input type="text" id="targets" value="4,6,8">
+                </div>
+                <div class="field">
+                    <label>Max Rounds</label>
+                    <div class="slider-row">
+                        <input type="range" id="rounds" min="2" max="15" value="7">
+                        <span class="slider-val" id="rounds-val">7</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Rest Benefit (+Str)</label>
+                    <div class="slider-row">
+                        <input type="range" id="rest" min="1" max="6" value="2">
+                        <span class="slider-val" id="rest-val">2</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Strategy</label>
+                    <select id="strategy"></select>
+                </div>
+            </section>
+        </div>
+
+        <div class="results">
+            <div id="stats"></div>
+            <table id="results"></table>
+            <button id="save-btn">Save CSV</button>
+        </div>
+    </div>
+
+    <script src="dice.js"></script>
+</body>
+</html>
