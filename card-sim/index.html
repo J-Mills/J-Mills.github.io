@@ -86,6 +86,13 @@
         margin-bottom: 0.6rem;
       }
 
+      .field-note {
+        font-size: 0.72rem;
+        color: #999;
+        line-height: 1.35;
+        margin: -0.2rem 0 0.6rem;
+      }
+
       .slider-row {
         display: flex;
         align-items: center;
@@ -338,6 +345,7 @@
       }
 
       .card {
+        position: relative;
         flex: 1 1 130px;
         min-width: 120px;
         border: 1px solid #ddd;
@@ -370,10 +378,91 @@
         border-left-color: #d9694a;
       }
 
+      .card.selectable {
+        cursor: pointer;
+      }
+
+      .card.selectable:hover {
+        border-color: #999;
+        background: #fff;
+      }
+
+      .card.selected,
+      .card.selected:hover {
+        background: #eaf1fd;
+        border-color: #5b8dee;
+        box-shadow: 0 0 0 2px rgba(91, 141, 238, 0.25);
+      }
+
+      .players.discarding .card.selectable:hover {
+        border-color: #d9694a;
+      }
+
+      .players.discarding .card.selected,
+      .players.discarding .card.selected:hover {
+        background: #fdecea;
+        border-color: #d9694a;
+        box-shadow: 0 0 0 2px rgba(217, 105, 74, 0.25);
+      }
+
+      .turn-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .turn-bar-text {
+        flex: 1;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .turn-bar button {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+      }
+
+      .turn-bar.discarding {
+        background: #fef7f5;
+        border-color: #f0c4b8;
+      }
+
+      .turn-bar.discarding .turn-bar-text {
+        color: #b5452a;
+      }
+
+      .turn-bar button.danger {
+        background: #d9694a;
+      }
+
+      .turn-bar button.danger:hover {
+        background: #c85b3d;
+      }
+
       .card.fresh {
         background: #f1f9f1;
         border-color: #bfe3c0;
         border-left-color: #4caf50;
+      }
+
+      .card-tag {
+        position: absolute;
+        top: 0.35rem;
+        right: 0.4rem;
+        padding: 0.1rem 0.25rem;
+        border-radius: 3px;
+        background: #e3f3e4;
+        color: #3d8b40;
+        font-size: 0.6rem;
+        font-weight: 600;
+        line-height: 1.2;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .card.fresh .cn {
+        padding-right: 3.2rem;
       }
 
       .empty-hand {
@@ -416,6 +505,10 @@
       }
       .log-discard {
         color: #d9694a;
+      }
+      .log-event {
+        color: #b5452a;
+        font-weight: 600;
       }
       .log-draw {
         color: #4caf50;
@@ -525,6 +618,13 @@
         <section>
           <h3>Turn Rules</h3>
           <div class="field">
+            <label>Turn control</label>
+            <select id="turn-mode">
+              <option value="random">Random (auto-player)</option>
+              <option value="manual">Manual (pick cards)</option>
+            </select>
+          </div>
+          <div class="field">
             <label>Cards played per turn (min)</label>
             <div class="slider-row">
               <input type="range" id="play-min" min="0" max="5" value="0" />
@@ -538,13 +638,7 @@
               <span class="slider-val" id="play-max-val">2</span>
             </div>
           </div>
-          <div class="field">
-            <label>Cards discarded per turn</label>
-            <div class="slider-row">
-              <input type="range" id="discard-count" min="0" max="5" value="2" />
-              <span class="slider-val" id="discard-count-val">2</span>
-            </div>
-          </div>
+          <div class="field-note" id="discard-note"></div>
           <div class="field">
             <label>Played cards go to</label>
             <select id="played-dest">
@@ -559,11 +653,7 @@
         </section>
 
         <section>
-          <h3>Randomness</h3>
-          <div class="field">
-            <label>Seed (blank = random)</label>
-            <input type="text" id="seed" value="" placeholder="e.g. bridge-01" />
-          </div>
+          <h3>Playback</h3>
           <div class="field">
             <label>Auto-play speed</label>
             <div class="slider-row">
@@ -590,6 +680,8 @@
         <div class="stat-grid" id="stats"></div>
 
         <div class="legend" id="legend"></div>
+
+        <div id="turn-bar"></div>
 
         <div class="players" id="players-view"></div>
 
