@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Card Simulator</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f4f4f4;
+        color: #222;
+        padding: 1rem;
+      }
+
+      h1 {
+        margin-bottom: 1.5rem;
+        font-size: 1.4rem;
+      }
+
+      .layout {
+        display: flex;
+        gap: 2rem;
+        align-items: flex-start;
+      }
+
+      .controls {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1.25rem;
+        min-width: 280px;
+        width: 280px;
+      }
+
+      .controls h3 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #888;
+        margin-bottom: 0.75rem;
+      }
+
+      .controls section + section {
+        margin-top: 1.25rem;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0.6rem;
+      }
+
+      .field label {
+        font-size: 0.8rem;
+        color: #555;
+        margin-bottom: 0.2rem;
+      }
+
+      .field input[type='text'],
+      .field select {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.9rem;
+        width: 100%;
+      }
+
+      .field input[type='text']:focus,
+      .field select:focus {
+        outline: none;
+        border-color: #5b8dee;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.8rem;
+        color: #555;
+        margin-bottom: 0.6rem;
+      }
+
+      .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .slider-row input[type='range'] {
+        flex: 1;
+      }
+
+      .slider-val {
+        font-size: 0.9rem;
+        min-width: 2.5rem;
+        text-align: right;
+      }
+
+      .results {
+        flex: 1;
+        min-width: 0;
+      }
+
+      button {
+        padding: 0.5rem 1.25rem;
+        background: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #43a047;
+      }
+
+      button.secondary {
+        background: #5b8dee;
+      }
+
+      button.secondary:hover {
+        background: #4a7ad6;
+      }
+
+      button.ghost {
+        background: #fff;
+        color: #555;
+        border: 1px solid #ccc;
+      }
+
+      button.ghost:hover {
+        background: #f0f0f0;
+      }
+
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .controls .button-row button {
+        flex: 1;
+      }
+
+      /* ---------- info panel ---------- */
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 0.6rem;
+        margin-bottom: 1rem;
+      }
+
+      .stat {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 0.6rem 0.8rem;
+      }
+
+      .stat .k {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #888;
+      }
+
+      .stat .v {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 0.15rem;
+      }
+
+      .stat .sub {
+        font-size: 0.7rem;
+        color: #999;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1.4rem;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 0.6rem 0.9rem;
+        margin-bottom: 1rem;
+        font-size: 0.8rem;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+
+      .legend-key {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+      }
+
+      .legend-label {
+        font-weight: 600;
+      }
+
+      .legend-count,
+      .legend-total {
+        color: #999;
+      }
+
+      .legend-total {
+        margin-left: auto;
+      }
+
+      .panel {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .panel h3 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #888;
+        margin-bottom: 0.75rem;
+      }
+
+      /* ---------- players ---------- */
+
+      .players {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .player {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 0.9rem;
+      }
+
+      .player.active {
+        border-color: #4caf50;
+        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.18);
+      }
+
+      .player-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 0.7rem;
+      }
+
+      .player-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      .player.active .player-name::after {
+        content: ' \25B6';
+        color: #4caf50;
+      }
+
+      .player .player-name.plain::after {
+        content: none;
+      }
+
+      .players.shared {
+        grid-template-columns: 1fr;
+      }
+
+      .seat-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .seat {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background: #fafafa;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .seat.active {
+        border-color: #4caf50;
+        background: #f1f9f1;
+      }
+
+      .seat.active::before {
+        content: '\25B6';
+        color: #4caf50;
+        font-size: 0.65rem;
+      }
+
+      .seat em {
+        font-style: normal;
+        font-weight: 400;
+        font-size: 0.75rem;
+        color: #999;
+      }
+
+      .player-meta {
+        font-size: 0.75rem;
+        color: #999;
+      }
+
+      .hand {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .card {
+        flex: 1 1 130px;
+        min-width: 120px;
+        border: 1px solid #ddd;
+        border-left: 4px solid #bbb;
+        border-radius: 5px;
+        padding: 0.45rem 0.55rem;
+        background: #fafafa;
+      }
+
+      .card .cn {
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+
+      .card .ce {
+        font-size: 0.7rem;
+        color: #888;
+        margin-top: 0.2rem;
+        line-height: 1.2;
+      }
+
+      .card.t-action {
+        border-left-color: #3b7dd8;
+      }
+      .card.t-relic {
+        border-left-color: #8a5cd6;
+      }
+      .card.t-event {
+        border-left-color: #d9694a;
+      }
+
+      .card.fresh {
+        background: #f1f9f1;
+        border-color: #bfe3c0;
+        border-left-color: #4caf50;
+      }
+
+      .empty-hand {
+        font-size: 0.78rem;
+        color: #bbb;
+        font-style: italic;
+      }
+
+      /* ---------- log ---------- */
+
+      #log {
+        max-height: 260px;
+        overflow-y: auto;
+        font-size: 0.8rem;
+      }
+
+      .log-entry {
+        padding: 0.4rem 0;
+        border-bottom: 1px solid #f0f0f0;
+        line-height: 1.45;
+      }
+
+      .log-entry:last-child {
+        border-bottom: none;
+      }
+
+      .log-turn {
+        display: inline-block;
+        min-width: 3.2rem;
+        color: #aaa;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .log-who {
+        font-weight: 600;
+      }
+
+      .log-play {
+        color: #3b7dd8;
+      }
+      .log-discard {
+        color: #d9694a;
+      }
+      .log-draw {
+        color: #4caf50;
+      }
+      .log-note {
+        color: #999;
+        font-style: italic;
+      }
+
+      /* ---------- tables ---------- */
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        font-size: 0.85rem;
+      }
+
+      thead {
+        background: #f0f0f0;
+      }
+
+      th,
+      td {
+        padding: 0.45rem 0.7rem;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+
+      th {
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #666;
+      }
+
+      td.num,
+      th.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      tr:hover td {
+        background: #fafafa;
+      }
+
+      td .swatch {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        margin-right: 0.45rem;
+        vertical-align: baseline;
+      }
+
+      .zero {
+        color: #ccc;
+      }
+
+      @media (max-width: 700px) {
+        .layout {
+          flex-direction: column;
+        }
+
+        .controls {
+          width: 100%;
+          min-width: unset;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Card Simulator</h1>
+
+    <div class="layout">
+      <div class="controls">
+        <section>
+          <h3>Table</h3>
+          <div class="field">
+            <label>Players</label>
+            <div class="slider-row">
+              <input type="range" id="players" min="2" max="8" value="4" />
+              <span class="slider-val" id="players-val">4</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Hands</label>
+            <select id="hand-mode">
+              <option value="individual">Individual hands</option>
+              <option value="shared">One shared hand</option>
+            </select>
+          </div>
+          <div class="field">
+            <label id="hand-size-label">Hand size</label>
+            <div class="slider-row">
+              <input type="range" id="hand-size" min="1" max="10" value="4" />
+              <span class="slider-val" id="hand-size-val">4</span>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3>Turn Rules</h3>
+          <div class="field">
+            <label>Cards played per turn (min)</label>
+            <div class="slider-row">
+              <input type="range" id="play-min" min="0" max="5" value="0" />
+              <span class="slider-val" id="play-min-val">0</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Cards played per turn (max)</label>
+            <div class="slider-row">
+              <input type="range" id="play-max" min="0" max="5" value="2" />
+              <span class="slider-val" id="play-max-val">2</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Cards discarded per turn</label>
+            <div class="slider-row">
+              <input type="range" id="discard-count" min="0" max="5" value="2" />
+              <span class="slider-val" id="discard-count-val">2</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Played cards go to</label>
+            <select id="played-dest">
+              <option value="discard">Discard pile</option>
+              <option value="removed">Out of play</option>
+            </select>
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="reshuffle" checked />
+            <label for="reshuffle">Reshuffle discard when deck runs out</label>
+          </div>
+        </section>
+
+        <section>
+          <h3>Randomness</h3>
+          <div class="field">
+            <label>Seed (blank = random)</label>
+            <input type="text" id="seed" value="" placeholder="e.g. bridge-01" />
+          </div>
+          <div class="field">
+            <label>Auto-play speed</label>
+            <div class="slider-row">
+              <input type="range" id="speed" min="100" max="2000" step="100" value="700" />
+              <span class="slider-val" id="speed-val">700ms</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="button-row">
+          <button id="new-game">Start Game</button>
+        </div>
+        <div class="button-row">
+          <button id="next-turn" class="secondary">Next Turn</button>
+          <button id="auto" class="ghost">Auto</button>
+        </div>
+        <div class="button-row">
+          <button id="skip" class="ghost">Skip 10</button>
+          <button id="save-btn" class="ghost">Save Log</button>
+        </div>
+      </div>
+
+      <div class="results">
+        <div class="stat-grid" id="stats"></div>
+
+        <div class="legend" id="legend"></div>
+
+        <div class="players" id="players-view"></div>
+
+        <div class="panel">
+          <h3>Turn Log</h3>
+          <div id="log"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Card Tracker</h3>
+          <table id="tracker"></table>
+        </div>
+      </div>
+    </div>
+
+    <script src="cards.js"></script>
+  </body>
+</html>
