@@ -405,6 +405,175 @@
         box-shadow: 0 0 0 2px rgba(217, 105, 74, 0.25);
       }
 
+      /* ---------- bridge ---------- */
+
+      .bridge-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 0.75rem;
+      }
+
+      .bridge-hp {
+        font-size: 0.78rem;
+        color: #888;
+      }
+
+      .bridge-row {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .seg {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #fafafa;
+        padding: 0.55rem 0.4rem;
+        text-align: center;
+      }
+
+      .seg-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #999;
+      }
+
+      .pips {
+        display: flex;
+        justify-content: center;
+        gap: 3px;
+        margin: 0.35rem 0 0.3rem;
+      }
+
+      .pip {
+        flex: 1;
+        max-width: 16px;
+        height: 8px;
+        border-radius: 2px;
+        background: #e6e6e6;
+      }
+
+      .pip.on {
+        background: #4caf50;
+      }
+
+      .seg.hp-3 .pip.on {
+        background: #8bc34a;
+      }
+      .seg.hp-2 .pip.on {
+        background: #e8a33d;
+      }
+      .seg.hp-1 .pip.on {
+        background: #d9694a;
+      }
+
+      .seg.hp-1 {
+        border-color: #e9b3a3;
+        background: #fdf3f0;
+      }
+
+      .seg.broken {
+        border-color: #b5452a;
+        background: #fbe4de;
+      }
+
+      .seg-hp {
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .seg.broken .seg-hp {
+        color: #b5452a;
+      }
+
+      .seg-risk {
+        font-size: 0.65rem;
+        color: #aaa;
+        margin-top: 0.15rem;
+      }
+
+      .seg.targetable {
+        cursor: pointer;
+      }
+
+      .seg.targetable:hover {
+        border-color: #d9694a;
+        box-shadow: 0 0 0 2px rgba(217, 105, 74, 0.2);
+      }
+
+      /* ---------- forecast ---------- */
+
+      .forecast {
+        margin-top: 1rem;
+        padding-top: 0.9rem;
+        border-top: 1px solid #eee;
+        font-size: 0.8rem;
+      }
+
+      .forecast h4 {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #999;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .forecast-line {
+        color: #666;
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+      }
+
+      .forecast-line b {
+        color: #222;
+      }
+
+      .hist {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 40px;
+      }
+
+      .hist-bar {
+        flex: 1;
+        min-height: 1px;
+        border-radius: 2px 2px 0 0;
+        background: #d9694a;
+        opacity: 0.7;
+      }
+
+      .hist-axis {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 0.25rem;
+        font-size: 0.65rem;
+        color: #aaa;
+      }
+
+      .broken-banner {
+        margin-bottom: 1rem;
+        padding: 0.85rem 1rem;
+        border: 1px solid #e9b3a3;
+        border-radius: 8px;
+        background: #fbe4de;
+        color: #8f3520;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .broken-banner span {
+        display: block;
+        margin-top: 0.2rem;
+        font-weight: 400;
+        font-size: 0.8rem;
+        color: #a2543c;
+      }
+
       .turn-bar {
         display: flex;
         align-items: center;
@@ -506,7 +675,8 @@
       .log-discard {
         color: #d9694a;
       }
-      .log-event {
+      .log-event,
+      .log-bridge {
         color: #b5452a;
         font-weight: 600;
       }
@@ -640,6 +810,14 @@
           </div>
           <div class="field-note" id="discard-note"></div>
           <div class="field">
+            <label>Auto-player cuts the ropes at</label>
+            <select id="cut-policy">
+              <option value="random">A random segment</option>
+              <option value="weakest">The weakest segment</option>
+              <option value="strongest">The strongest segment</option>
+            </select>
+          </div>
+          <div class="field">
             <label>Played cards go to</label>
             <select id="played-dest">
               <option value="discard">Discard pile</option>
@@ -680,6 +858,10 @@
         <div class="stat-grid" id="stats"></div>
 
         <div class="legend" id="legend"></div>
+
+        <div id="broken-banner"></div>
+
+        <div class="panel" id="bridge"></div>
 
         <div id="turn-bar"></div>
 

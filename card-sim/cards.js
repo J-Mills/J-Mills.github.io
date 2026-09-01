@@ -31,6 +31,13 @@ const TYPE_TOTALS = CARD_DEFS.reduce((acc, d) => {
 }, {});
 const DECK_SIZE = CARD_DEFS.reduce((a, c) => a + c.qty, 0);
 
+const SEGMENTS = 6;
+const SEGMENT_HP = 4;
+const BRIDGE_HP = SEGMENTS * SEGMENT_HP;
+const FORECAST_TRIALS = 300;
+const FORECAST_HORIZON = 80;
+const HIST_TURNS = 30;
+
 /* --------------------------------- helpers -------------------------------- */
 
 function randInt(min, max) {
@@ -68,6 +75,7 @@ function readConfig() {
     playerCount: Number(document.getElementById('players').value),
     sharedHand: document.getElementById('hand-mode').value === 'shared',
     manual: document.getElementById('turn-mode').value === 'manual',
+    cutPolicy: document.getElementById('cut-policy').value,
     handSize: Number(document.getElementById('hand-size').value),
     playMin: Math.min(playMin, playMax),
     playMax: Math.max(playMin, playMax),
@@ -116,9 +124,16 @@ function resetTable() {
     eventsFired: 0,
     starved: false,
     started: false,
+    bridge: new Array(SEGMENTS).fill(SEGMENT_HP),
+    broken: false,
+    brokenTurn: null,
+    brokenSegment: null,
+    turnHits: [],
+    forecast: null,
     phase: 'play',
     selected: [],
     pendingDiscard: 0,
+    pendingTargets: 0,
     turnPlayed: [],
   };
 
@@ -151,9 +166,16 @@ function startGame() {
     eventsFired: 0,
     starved: false,
     started: true,
+    bridge: new Array(SEGMENTS).fill(SEGMENT_HP),
+    broken: false,
+    brokenTurn: null,
+    brokenSegment: null,
+    turnHits: [],
+    forecast: null,
     phase: 'play',
     selected: [],
     pendingDiscard: 0,
+    pendingTargets: 0,
     turnPlayed: [],
   };
 
@@ -176,8 +198,52 @@ function startGame() {
   if (dealEvents.length) {
     addLog(null, [['event', 'Fired on the deal: ' + names(dealEvents)]]);
   }
+  if (state.turnHits.length) {
+    addLog(null, [['bridge', state.turnHits.map(hitText).join(', ')]]);
+    state.turnHits = [];
+  }
+  updateForecast();
 
   render();
+}
+
+/* --------------------------------- bridge --------------------------------- */
+
+function bridgeHp() {
+  return state.bridge.reduce((a, b) => a + b, 0);
+}
+
+// One point of damage to a segment; at 0 the bridge snaps and the game moves on.
+function damageSegment(index, reason) {
+  if (state.broken || state.bridge[index] <= 0) return null;
+  state.bridge[index]--;
+  const hit = { index, hp: state.bridge[index], reason };
+  if (state.bridge[index] === 0) {
+    state.broken = true;
+    state.brokenTurn = state.turn;
+    state.brokenSegment = index;
+  }
+  state.turnHits.push(hit);
+  return hit;
+}
+
+// Where the auto-player aims a Cut the Ropes.
+function autoTarget() {
+  const alive = [];
+  for (let i = 0; i < SEGMENTS; i++) if (state.bridge[i] > 0) alive.push(i);
+  if (alive.length === 0) return null;
+
+  if (state.cfg.cutPolicy === 'weakest' || state.cfg.cutPolicy === 'strongest') {
+    const pick = state.cfg.cutPolicy === 'weakest' ? Math.min : Math.max;
+    const target = pick(...alive.map((i) => state.bridge[i]));
+    const tied = alive.filter((i) => state.bridge[i] === target);
+    return tied[Math.floor(Math.random() * tied.length)];
+  }
+  return alive[Math.floor(Math.random() * alive.length)];
+}
+
+function countCuts(cards) {
+  return cards.filter((c) => c.effect === 'Cut the Ropes').length;
 }
 
 /* ---------------------------------- rules --------------------------------- */
@@ -223,6 +289,10 @@ function drawCards(player, n) {
       state.discard.push(card);
       state.eventsFired++;
       triggered.push(card);
+      if (card.name === 'Bridge Weakens') {
+        damageSegment(randInt(0, SEGMENTS - 1), 'Bridge Weakens');
+        if (state.broken) break;
+      }
       continue;
     }
 
@@ -270,7 +340,10 @@ function finishTurn(player, played, discarded) {
   for (const card of discarded) state.discard.push(card);
   for (const p of state.players) p.fresh = [];
 
-  const refill = drawCards(player, Math.max(0, state.cfg.handSize - player.hand.length));
+  let refill = { drawn: [], triggered: [] };
+  if (!state.broken) {
+    refill = drawCards(player, Math.max(0, state.cfg.handSize - player.hand.length));
+  }
   const drawn = refill.drawn;
 
   const parts = [];
@@ -278,22 +351,31 @@ function finishTurn(player, played, discarded) {
   if (discarded.length) parts.push(['discard', 'discarded ' + names(discarded)]);
   if (drawn.length) parts.push(['draw', 'drew ' + drawn.length]);
   if (refill.triggered.length) parts.push(['event', 'fired ' + names(refill.triggered)]);
+  if (state.turnHits.length) parts.push(['bridge', state.turnHits.map(hitText).join(', ')]);
   if (player.hand.length < state.cfg.handSize) {
     parts.push(['note', 'could not refill (deck exhausted)']);
   }
   addLog(player, parts);
 
+  state.turnHits = [];
   state.turn++;
   state.active = (state.active + 1) % state.players.length;
   state.phase = 'play';
   state.selected = [];
   state.pendingDiscard = 0;
+  state.pendingTargets = 0;
   state.turnPlayed = [];
+  updateForecast();
   render();
 }
 
+function hitText(h) {
+  const seg = 'segment ' + (h.index + 1);
+  return h.hp === 0 ? seg + ' SNAPPED' : seg + ' \u2192 ' + h.hp + ' hp';
+}
+
 function takeTurn() {
-  if (!state || !state.started || state.cfg.manual) return;
+  if (!state || !state.started || state.cfg.manual || state.broken) return;
   const cfg = state.cfg;
   const player = state.players[state.active];
 
@@ -301,11 +383,29 @@ function takeTurn() {
   const played = takeRandom(player.hand, Math.min(wanted, player.hand.length));
   applyPlays(player, played);
 
+  for (let i = 0; i < countCuts(played) && !state.broken; i++) {
+    const target = autoTarget();
+    if (target !== null) damageSegment(target, 'Cut the Ropes');
+  }
+
   const discarded = takeRandom(player.hand, discardsDueAfter(player, played.length));
   finishTurn(player, played, discarded);
 }
 
-// Manual mode: pick the cards to play, then pick the discards.
+// Once the plays are locked in, move to discarding (or straight to the draw).
+function afterPlays(player, played) {
+  const due = state.broken ? 0 : discardsDueAfter(player, played.length);
+  if (due === 0) {
+    finishTurn(player, played, []);
+    return;
+  }
+  state.turnPlayed = played;
+  state.pendingDiscard = due;
+  state.phase = 'discard';
+  render();
+}
+
+// Manual mode: pick cards to play, aim any cuts, then pick the discards.
 function confirmSelection() {
   const player = state.players[state.active];
 
@@ -313,20 +413,36 @@ function confirmSelection() {
     const played = removeByUid(player.hand, state.selected);
     applyPlays(player, played);
     state.selected = [];
-    const due = discardsDueAfter(player, played.length);
-    if (due === 0) {
-      finishTurn(player, played, []);
+
+    const cuts = countCuts(played);
+    if (cuts > 0 && !state.broken) {
+      state.turnPlayed = played;
+      state.pendingTargets = cuts;
+      state.phase = 'target';
+      render();
       return;
     }
-    state.turnPlayed = played;
-    state.pendingDiscard = due;
-    state.phase = 'discard';
-    render();
+    afterPlays(player, played);
     return;
   }
 
   const discarded = removeByUid(player.hand, state.selected);
   finishTurn(player, state.turnPlayed, discarded);
+}
+
+// Manual mode: the player aims a Cut the Ropes at a segment.
+function chooseTarget(index) {
+  if (!isPicking() || state.phase !== 'target') return;
+  if (!damageSegment(index, 'Cut the Ropes')) return;
+
+  // The cut changes the odds, so refresh them before the board redraws.
+  updateForecast();
+  state.pendingTargets--;
+  if (state.broken || state.pendingTargets === 0) {
+    afterPlays(state.players[state.active], state.turnPlayed);
+    return;
+  }
+  render();
 }
 
 function selectionCap() {
@@ -347,8 +463,98 @@ function names(cards) {
 }
 
 function addLog(player, parts) {
+  if (state.forecasting) return;
   state.log.unshift({ turn: player ? state.turn : null, who: player ? player.name : null, parts });
   if (state.log.length > 400) state.log.pop();
+}
+
+/* --------------------------------- forecast -------------------------------- */
+
+// A copy of the position that the real turn logic can be run against.
+function cloneState(s) {
+  const c = {
+    // The auto-player stands in for whoever would be choosing.
+    cfg: Object.assign({}, s.cfg, { manual: false }),
+    deck: s.deck.slice(),
+    discard: s.discard.slice(),
+    removed: s.removed.slice(),
+    bridge: s.bridge.slice(),
+    active: s.active,
+    turn: s.turn,
+    broken: s.broken,
+    brokenTurn: s.brokenTurn,
+    brokenSegment: s.brokenSegment,
+    reshuffles: s.reshuffles,
+    eventsFired: s.eventsFired,
+    starved: s.starved,
+    started: s.started,
+    turnHits: [],
+    log: [],
+    playCounts: {},
+    drawCounts: {},
+    phase: 'play',
+    selected: [],
+    pendingDiscard: 0,
+    pendingTargets: 0,
+    turnPlayed: [],
+    forecast: null,
+    forecasting: true,
+  };
+  const hands = s.cfg.sharedHand ? s.players[0].hand.slice() : null;
+  c.players = s.players.map((p) => ({
+    id: p.id,
+    name: p.name,
+    hand: hands || p.hand.slice(),
+    fresh: [],
+    played: p.played,
+  }));
+  return c;
+}
+
+// Play the position out many times to see when the bridge tends to go.
+function updateForecast() {
+  if (!state || state.forecasting) return;
+  if (!state.started || state.broken) {
+    if (state) state.forecast = null;
+    return;
+  }
+
+  const real = state;
+  const from = real.turn;
+  const delays = [];
+  const bySegment = new Array(SEGMENTS).fill(0);
+
+  for (let t = 0; t < FORECAST_TRIALS; t++) {
+    state = cloneState(real);
+    let guard = 0;
+    while (!state.broken && state.turn - from < FORECAST_HORIZON && guard++ <= FORECAST_HORIZON) {
+      takeTurn();
+    }
+    if (state.broken) {
+      delays.push(state.brokenTurn - from);
+      bySegment[state.brokenSegment]++;
+    }
+  }
+  state = real;
+
+  const sorted = delays.slice().sort((a, b) => a - b);
+  const within = (k) => delays.filter((d) => d <= k).length / FORECAST_TRIALS;
+  const hist = new Array(HIST_TURNS).fill(0);
+  for (const d of delays) if (d < HIST_TURNS) hist[d]++;
+
+  state.forecast = {
+    from,
+    trials: FORECAST_TRIALS,
+    broke: delays.length,
+    median: sorted.length ? sorted[Math.floor(sorted.length / 2)] : null,
+    mean: sorted.length ? sorted.reduce((a, b) => a + b, 0) / sorted.length : null,
+    next: within(0),
+    in5: within(4),
+    in10: within(9),
+    in20: within(19),
+    hist,
+    segmentRisk: bySegment.map((n) => (delays.length ? n / delays.length : 0)),
+  };
 }
 
 /* --------------------------------- rendering ------------------------------- */
@@ -358,13 +564,15 @@ function esc(s) {
 }
 
 function render() {
+  if (state.forecasting) return;
   renderStats();
   renderLegend();
+  renderBridge();
   renderTurnBar();
   renderPlayers();
   renderLog();
   renderTracker();
-  const auto = state.started && !state.cfg.manual;
+  const auto = state.started && !state.cfg.manual && !state.broken;
   for (const id of ['next-turn', 'auto', 'skip']) {
     document.getElementById(id).disabled = !auto;
   }
@@ -412,6 +620,11 @@ function renderStats() {
     { k: 'In hands', v: inHands, sub: s.cfg.sharedHand ? 'shared hand' : s.players.length + ' players' },
     { k: 'Discard', v: s.discard.length, sub: s.reshuffles + ' reshuffles' },
     { k: 'Events fired', v: s.eventsFired, sub: 'on draw' },
+    {
+      k: 'Bridge',
+      v: s.broken ? 'SNAP' : bridgeHp(),
+      sub: s.broken ? 'turn ' + s.brokenTurn : 'of ' + BRIDGE_HP + ' hp',
+    },
     { k: 'Out of play', v: s.removed.length, sub: s.cfg.playedDest === 'removed' ? 'played cards' : 'none' },
   ];
   document.getElementById('stats').innerHTML = tiles
@@ -469,8 +682,92 @@ function sharedPanelHTML() {
   );
 }
 
+function renderBridge() {
+  const targeting = isPicking() && state.phase === 'target';
+  const risk = state.forecast ? state.forecast.segmentRisk : null;
+
+  const segs = state.bridge
+    .map((hp, i) => {
+      const cls =
+        'seg hp-' + hp + (hp === 0 ? ' broken' : '') + (targeting && hp > 0 ? ' targetable' : '');
+      let pips = '';
+      for (let p = 0; p < SEGMENT_HP; p++) {
+        pips += '<span class="pip' + (p < hp ? ' on' : '') + '"></span>';
+      }
+      const note = hp === 0
+        ? 'snapped'
+        : risk
+          ? Math.round(risk[i] * 100) + '% to break here'
+          : '&nbsp;';
+      return (
+        '<div class="' + cls + '" data-seg="' + i + '">' +
+        '<div class="seg-label">Seg ' + (i + 1) + '</div>' +
+        '<div class="pips">' + pips + '</div>' +
+        '<div class="seg-hp">' + hp + ' hp</div>' +
+        '<div class="seg-risk">' + note + '</div>' +
+        '</div>'
+      );
+    })
+    .join('');
+
+  document.getElementById('bridge').innerHTML =
+    '<div class="bridge-head"><h3>The Bridge</h3>' +
+    '<span class="bridge-hp">' + bridgeHp() + ' / ' + BRIDGE_HP + ' hp across ' + SEGMENTS + ' segments</span></div>' +
+    '<div class="bridge-row">' + segs + '</div>' +
+    forecastHTML();
+
+  const banner = document.getElementById('broken-banner');
+  if (state.broken) {
+    banner.className = 'broken-banner';
+    banner.innerHTML =
+      'The bridge snapped on turn ' + state.brokenTurn + ' — segment ' + (state.brokenSegment + 1) + ' gave way.' +
+      '<span>Phase 2 begins. Press Start Game to run it again.</span>';
+  } else {
+    banner.className = '';
+    banner.innerHTML = '';
+  }
+}
+
+function forecastHTML() {
+  if (state.broken) return '';
+  const f = state.forecast;
+  if (!f) return '';
+
+  const pct = (v) => Math.round(v * 100) + '%';
+  const survived = f.broke < f.trials;
+  const headline =
+    f.median === null
+      ? 'The bridge held in every simulation.'
+      : 'Snaps around <b>turn ' + (f.from + f.median) + '</b> (' +
+        (f.median === 0 ? 'this turn' : 'in ' + f.median + ' turns') + ')';
+
+  const peak = Math.max(...f.hist, 1);
+  const bars = f.hist
+    .map((n, i) => {
+      const h = Math.round((n / peak) * 100);
+      return '<div class="hist-bar" style="height:' + Math.max(h, n ? 4 : 1) + '%" title="turn ' +
+        (f.from + i) + ': ' + Math.round((n / f.trials) * 100) + '%"></div>';
+    })
+    .join('');
+
+  return (
+    '<div class="forecast">' +
+    '<h4>Snap forecast — ' + f.trials + ' playouts from here, random play</h4>' +
+    '<div class="forecast-line">' + headline +
+    ' · next turn <b>' + pct(f.next) + '</b>' +
+    ' · within 5 <b>' + pct(f.in5) + '</b>' +
+    ' · within 10 <b>' + pct(f.in10) + '</b>' +
+    ' · within 20 <b>' + pct(f.in20) + '</b>' +
+    (survived ? ' · held past ' + FORECAST_HORIZON + ' turns in ' + pct(1 - f.broke / f.trials) : '') +
+    '</div>' +
+    '<div class="hist">' + bars + '</div>' +
+    '<div class="hist-axis"><span>turn ' + f.from + '</span><span>turn ' + (f.from + HIST_TURNS - 1) + '</span></div>' +
+    '</div>'
+  );
+}
+
 function isPicking() {
-  return state.started && state.cfg.manual;
+  return state.started && state.cfg.manual && !state.broken;
 }
 
 function renderTurnBar() {
@@ -484,6 +781,16 @@ function renderTurnBar() {
   const player = state.players[state.active];
   const sel = state.selected.length;
   let text, label, ready;
+
+  if (state.phase === 'target') {
+    const left = state.pendingTargets;
+    bar.className = 'panel turn-bar discarding';
+    bar.innerHTML =
+      '<span class="turn-bar-text">' +
+      esc(player.name + ' — cut the ropes: pick a bridge segment' + (left > 1 ? ' (' + left + ' cuts left)' : '')) +
+      '</span>';
+    return;
+  }
 
   if (state.phase === 'play') {
     const max = Math.min(state.cfg.playMax, player.hand.length);
@@ -628,6 +935,11 @@ document.getElementById('players-view').addEventListener('click', (e) => {
   if (el) toggleSelection(Number(el.dataset.uid));
 });
 
+document.getElementById('bridge').addEventListener('click', (e) => {
+  const el = e.target.closest('.seg.targetable');
+  if (el) chooseTarget(Number(el.dataset.seg));
+});
+
 document.getElementById('turn-bar').addEventListener('click', (e) => {
   if (e.target.id === 'confirm-selection') confirmSelection();
 });
@@ -657,7 +969,7 @@ document.getElementById('speed').addEventListener('change', () => {
 ['players', 'hand-size', 'hand-mode'].forEach((id) =>
   document.getElementById(id).addEventListener('change', resetTable),
 );
-['play-min', 'play-max', 'played-dest', 'reshuffle', 'turn-mode'].forEach((id) =>
+['play-min', 'play-max', 'played-dest', 'reshuffle', 'turn-mode', 'cut-policy'].forEach((id) =>
   document.getElementById(id).addEventListener('change', () => {
     if (!state) return;
     state.cfg = readConfig();
@@ -670,6 +982,7 @@ document.getElementById('speed').addEventListener('change', () => {
       return;
     }
     state.selected = [];
+    updateForecast();
     render();
   }),
 );
