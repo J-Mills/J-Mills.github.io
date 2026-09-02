@@ -25,15 +25,27 @@ const CARD_DEFS = [
 
 const TYPE_COLOUR = { action: '#3b7dd8', relic: '#8a5cd6', event: '#d9694a' };
 const TYPE_LABEL = { action: 'Actions', relic: 'Relics', event: 'Events' };
-const TYPE_TOTALS = CARD_DEFS.reduce((acc, d) => {
-  acc[d.type] = (acc[d.type] || 0) + d.qty;
-  return acc;
-}, {});
-const DECK_SIZE = CARD_DEFS.reduce((a, c) => a + c.qty, 0);
+// Event counts are adjustable, so the deck list is derived rather than fixed.
+function deckDefs(cfg) {
+  return CARD_DEFS.map((d) => {
+    if (d.name === 'Bridge Weakens') return Object.assign({}, d, { qty: cfg.bridgeWeakens });
+    if (d.name === 'Strength Test') return Object.assign({}, d, { qty: cfg.strengthTest });
+    return d;
+  });
+}
+
+function deckSize(cfg) {
+  return deckDefs(cfg).reduce((a, d) => a + d.qty, 0);
+}
+
+function typeTotals(cfg) {
+  return deckDefs(cfg).reduce((acc, d) => {
+    acc[d.type] = (acc[d.type] || 0) + d.qty;
+    return acc;
+  }, {});
+}
 
 const SEGMENTS = 6;
-const SEGMENT_HP = 4;
-const BRIDGE_HP = SEGMENTS * SEGMENT_HP;
 const FORECAST_TRIALS = 300;
 const FORECAST_HORIZON = 80;
 const HIST_TURNS = 30;
@@ -58,9 +70,9 @@ let state = null;
 let autoTimer = null;
 let uid = 0;
 
-function buildDeck() {
+function buildDeck(cfg) {
   const deck = [];
-  for (const def of CARD_DEFS) {
+  for (const def of deckDefs(cfg)) {
     for (let i = 0; i < def.qty; i++) {
       deck.push({ uid: uid++, name: def.name, effect: def.effect, type: def.type });
     }
@@ -80,7 +92,11 @@ function readConfig() {
     playMin: Math.min(playMin, playMax),
     playMax: Math.max(playMin, playMax),
     playedDest: document.getElementById('played-dest').value,
-    reshuffle: document.getElementById('reshuffle').checked,
+    segmentHp: Number(document.getElementById('segment-hp').value),
+    bridgeWeakens: Number(document.getElementById('bridge-weakens').value),
+    strengthTest: Number(document.getElementById('strength-test').value),
+    // The discard always cycles back in; without it the table just stalls.
+    reshuffle: true,
   };
 }
 
@@ -111,7 +127,7 @@ function resetTable() {
   const cfg = readConfig();
   state = {
     cfg,
-    deck: buildDeck(),
+    deck: buildDeck(cfg),
     discard: [],
     removed: [],
     players: makePlayers(cfg),
@@ -124,7 +140,7 @@ function resetTable() {
     eventsFired: 0,
     starved: false,
     started: false,
-    bridge: new Array(SEGMENTS).fill(SEGMENT_HP),
+    bridge: new Array(SEGMENTS).fill(cfg.segmentHp),
     broken: false,
     brokenTurn: null,
     brokenSegment: null,
@@ -153,7 +169,7 @@ function startGame() {
 
   state = {
     cfg,
-    deck: shuffle(buildDeck()),
+    deck: shuffle(buildDeck(cfg)),
     discard: [],
     removed: [],
     players,
@@ -166,7 +182,7 @@ function startGame() {
     eventsFired: 0,
     starved: false,
     started: true,
-    bridge: new Array(SEGMENTS).fill(SEGMENT_HP),
+    bridge: new Array(SEGMENTS).fill(cfg.segmentHp),
     broken: false,
     brokenTurn: null,
     brokenSegment: null,
@@ -213,6 +229,10 @@ function bridgeHp() {
   return state.bridge.reduce((a, b) => a + b, 0);
 }
 
+function bridgeMax() {
+  return SEGMENTS * state.cfg.segmentHp;
+}
+
 // One point of damage to a segment; at 0 the bridge snaps and the game moves on.
 function damageSegment(index, reason) {
   if (state.broken || state.bridge[index] <= 0) return null;
@@ -257,6 +277,7 @@ function fillableRemains() {
 function drawCards(player, n) {
   const drawn = [];
   const triggered = [];
+  const cap = deckSize(state.cfg);
   let pulled = 0;
 
   while (drawn.length < n) {
@@ -276,7 +297,7 @@ function drawCards(player, n) {
       }
     }
     // With nothing but events left to pull, drawing would cycle forever.
-    if (pulled++ > DECK_SIZE) {
+    if (pulled++ > cap) {
       state.starved = true;
       break;
     }
@@ -579,6 +600,10 @@ function render() {
   document.getElementById('save-btn').disabled = !state.started;
   document.getElementById('new-game').textContent = state.started ? 'New Game' : 'Start Game';
   document.getElementById('hand-size-label').textContent = state.cfg.sharedHand ? 'Shared hand size' : 'Hand size';
+  document.getElementById('bridge-note').textContent =
+    SEGMENTS + ' segments \u00d7 ' + state.cfg.segmentHp + ' hp — the bridge snaps when any one segment reaches 0.';
+  document.getElementById('deck-note').textContent =
+    deckSize(state.cfg) + ' cards in the deck; only Bridge Weakens damages the bridge.';
   document.getElementById('discard-note').textContent =
     'Anything not played is discarded, so ' + state.cfg.playMax + ' cards leave the hand each turn.';
 }
@@ -587,11 +612,12 @@ function renderLegend() {
   const held = {};
   for (const c of heldCards()) held[c.type] = (held[c.type] || 0) + 1;
 
+  const totals = typeTotals(state.cfg);
   const items = Object.keys(TYPE_LABEL).map((type) => {
     const counts =
       type === 'event'
-        ? TYPE_TOTALS[type] + ' total · fires on draw'
-        : TYPE_TOTALS[type] + ' total' + (state.started ? ' · ' + (held[type] || 0) + ' in hands' : '');
+        ? totals[type] + ' total · fires on draw'
+        : totals[type] + ' total' + (state.started ? ' · ' + (held[type] || 0) + ' in hands' : '');
     return (
       '<span class="legend-item">' +
       '<span class="legend-key" style="background:' + TYPE_COLOUR[type] + '"></span>' +
@@ -602,7 +628,7 @@ function renderLegend() {
   });
 
   document.getElementById('legend').innerHTML =
-    items.join('') + '<span class="legend-total">' + DECK_SIZE + ' cards in the deck</span>';
+    items.join('') + '<span class="legend-total">' + deckSize(state.cfg) + ' cards in the deck</span>';
 }
 
 function renderStats() {
@@ -616,14 +642,14 @@ function renderStats() {
       v: s.started ? s.players[s.active].name.replace('Player ', 'P') : '—',
       sub: s.started ? 'to act' : 'awaiting deal',
     },
-    { k: 'Deck', v: s.deck.length, sub: 'of ' + DECK_SIZE },
+    { k: 'Deck', v: s.deck.length, sub: 'of ' + deckSize(s.cfg) },
     { k: 'In hands', v: inHands, sub: s.cfg.sharedHand ? 'shared hand' : s.players.length + ' players' },
     { k: 'Discard', v: s.discard.length, sub: s.reshuffles + ' reshuffles' },
     { k: 'Events fired', v: s.eventsFired, sub: 'on draw' },
     {
       k: 'Bridge',
       v: s.broken ? 'SNAP' : bridgeHp(),
-      sub: s.broken ? 'turn ' + s.brokenTurn : 'of ' + BRIDGE_HP + ' hp',
+      sub: s.broken ? 'turn ' + s.brokenTurn : 'of ' + bridgeMax() + ' hp',
     },
     { k: 'Out of play', v: s.removed.length, sub: s.cfg.playedDest === 'removed' ? 'played cards' : 'none' },
   ];
@@ -691,7 +717,7 @@ function renderBridge() {
       const cls =
         'seg hp-' + hp + (hp === 0 ? ' broken' : '') + (targeting && hp > 0 ? ' targetable' : '');
       let pips = '';
-      for (let p = 0; p < SEGMENT_HP; p++) {
+      for (let p = 0; p < state.cfg.segmentHp; p++) {
         pips += '<span class="pip' + (p < hp ? ' on' : '') + '"></span>';
       }
       const note = hp === 0
@@ -712,7 +738,7 @@ function renderBridge() {
 
   document.getElementById('bridge').innerHTML =
     '<div class="bridge-head"><h3>The Bridge</h3>' +
-    '<span class="bridge-hp">' + bridgeHp() + ' / ' + BRIDGE_HP + ' hp across ' + SEGMENTS + ' segments</span></div>' +
+    '<span class="bridge-hp">' + bridgeHp() + ' / ' + bridgeMax() + ' hp across ' + SEGMENTS + ' segments</span></div>' +
     '<div class="bridge-row">' + segs + '</div>' +
     forecastHTML();
 
@@ -848,7 +874,7 @@ function renderTracker() {
 
   const cell = (n) => '<td class="num' + (n ? '' : ' zero') + '">' + n + '</td>';
 
-  const rows = CARD_DEFS.map((def) => {
+  const rows = deckDefs(state.cfg).map((def) => {
     return (
       '<tr><td><span class="swatch" style="background:' + TYPE_COLOUR[def.type] + '"></span>' +
       esc(def.name) + '</td>' +
@@ -909,7 +935,9 @@ function bindSlider(id, format) {
   sync();
 }
 
-['players', 'hand-size', 'play-min', 'play-max'].forEach((id) => bindSlider(id));
+['players', 'hand-size', 'play-min', 'play-max', 'segment-hp', 'bridge-weakens', 'strength-test'].forEach(
+  (id) => bindSlider(id),
+);
 bindSlider('speed', (v) => v + 'ms');
 
 // Keep the play min/max sliders from crossing over.
@@ -966,10 +994,10 @@ document.getElementById('speed').addEventListener('change', () => {
 });
 
 // Changing table setup returns to an undealt table; turn rules apply from the next turn.
-['players', 'hand-size', 'hand-mode'].forEach((id) =>
+['players', 'hand-size', 'hand-mode', 'segment-hp', 'bridge-weakens', 'strength-test'].forEach((id) =>
   document.getElementById(id).addEventListener('change', resetTable),
 );
-['play-min', 'play-max', 'played-dest', 'reshuffle', 'turn-mode', 'cut-policy'].forEach((id) =>
+['play-min', 'play-max', 'played-dest', 'turn-mode', 'cut-policy'].forEach((id) =>
   document.getElementById(id).addEventListener('change', () => {
     if (!state) return;
     state.cfg = readConfig();

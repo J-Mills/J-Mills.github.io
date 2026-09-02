@@ -786,6 +786,37 @@
         </section>
 
         <section>
+          <h3>Bridge</h3>
+          <div class="field">
+            <label>Rope health per segment</label>
+            <div class="slider-row">
+              <input type="range" id="segment-hp" min="2" max="6" value="4" />
+              <span class="slider-val" id="segment-hp-val">4</span>
+            </div>
+          </div>
+          <div class="field-note" id="bridge-note"></div>
+        </section>
+
+        <section>
+          <h3>Deck</h3>
+          <div class="field">
+            <label>Bridge Weakens cards</label>
+            <div class="slider-row">
+              <input type="range" id="bridge-weakens" min="0" max="12" value="6" />
+              <span class="slider-val" id="bridge-weakens-val">6</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Strength Test cards</label>
+            <div class="slider-row">
+              <input type="range" id="strength-test" min="0" max="12" value="4" />
+              <span class="slider-val" id="strength-test-val">4</span>
+            </div>
+          </div>
+          <div class="field-note" id="deck-note"></div>
+        </section>
+
+        <section>
           <h3>Turn Rules</h3>
           <div class="field">
             <label>Turn control</label>
@@ -823,10 +854,6 @@
               <option value="discard">Discard pile</option>
               <option value="removed">Out of play</option>
             </select>
-          </div>
-          <div class="checkbox-row">
-            <input type="checkbox" id="reshuffle" checked />
-            <label for="reshuffle">Reshuffle discard when deck runs out</label>
           </div>
         </section>
 
