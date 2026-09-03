@@ -92,6 +92,7 @@ function readConfig() {
     playMin: Math.min(playMin, playMax),
     playMax: Math.max(playMin, playMax),
     playedDest: document.getElementById('played-dest').value,
+    startHealth: Number(document.getElementById('start-health').value),
     segmentHp: Number(document.getElementById('segment-hp').value),
     bridgeWeakens: Number(document.getElementById('bridge-weakens').value),
     strengthTest: Number(document.getElementById('strength-test').value),
@@ -103,7 +104,15 @@ function readConfig() {
 function makePlayers(cfg) {
   const players = [];
   for (let i = 0; i < cfg.playerCount; i++) {
-    players.push({ id: i, name: 'Player ' + (i + 1), hand: [], fresh: [], played: 0 });
+    players.push({
+      id: i,
+      name: 'Player ' + (i + 1),
+      hand: [],
+      fresh: [],
+      played: 0,
+      health: cfg.startHealth,
+      maxHealth: cfg.startHealth,
+    });
   }
   if (cfg.sharedHand) {
     const shared = [];
@@ -145,6 +154,9 @@ function resetTable() {
     brokenTurn: null,
     brokenSegment: null,
     turnHits: [],
+    turnStrain: [],
+    turnHeal: 0,
+    turnHealTo: 0,
     forecast: null,
     phase: 'play',
     selected: [],
@@ -187,6 +199,9 @@ function startGame() {
     brokenTurn: null,
     brokenSegment: null,
     turnHits: [],
+    turnStrain: [],
+    turnHeal: 0,
+    turnHealTo: 0,
     forecast: null,
     phase: 'play',
     selected: [],
@@ -214,6 +229,15 @@ function startGame() {
   if (dealEvents.length) {
     addLog(null, [['event', 'Fired on the deal: ' + names(dealEvents)]]);
   }
+  for (const fell of state.turnStrain) {
+    addLog(null, [
+      [
+        'strain',
+        fell.length ? 'Strength Test hit ' + fell.join(', ') : 'Strength Test — everyone held firm',
+      ],
+    ]);
+  }
+  state.turnStrain = [];
   if (state.turnHits.length) {
     addLog(null, [['bridge', state.turnHits.map(hitText).join(', ')]]);
     state.turnHits = [];
@@ -227,6 +251,32 @@ function startGame() {
 
 function bridgeHp() {
   return state.bridge.reduce((a, b) => a + b, 0);
+}
+
+/* -------------------------------- strength -------------------------------- */
+
+function partyHealth() {
+  return state.players.reduce((a, p) => a + p.health, 0);
+}
+
+function partyMax() {
+  return state.players.reduce((a, p) => a + p.maxHealth, 0);
+}
+
+function playersDown() {
+  return state.players.filter((p) => p.health === 0).length;
+}
+
+// A Strength Test rolls independently against every player still standing.
+function runStrengthTest() {
+  const fell = [];
+  for (const p of state.players) {
+    if (p.health > 0 && Math.random() < 0.5) {
+      p.health--;
+      fell.push(p);
+    }
+  }
+  state.turnStrain.push(fell.map((p) => p.name + (p.health === 0 ? ' (down)' : '')));
 }
 
 function bridgeMax() {
@@ -314,6 +364,7 @@ function drawCards(player, n) {
         damageSegment(randInt(0, SEGMENTS - 1), 'Bridge Weakens');
         if (state.broken) break;
       }
+      if (card.name === 'Strength Test') runStrengthTest();
       continue;
     }
 
@@ -348,6 +399,12 @@ function applyPlays(player, cards) {
     state.playCounts[card.name] = (state.playCounts[card.name] || 0) + 1;
     if (state.cfg.playedDest === 'removed') state.removed.push(card);
     else state.discard.push(card);
+
+    if (card.effect === 'Heal' && player.health < player.maxHealth) {
+      player.health++;
+      state.turnHeal++;
+      state.turnHealTo = player.health;
+    }
   }
   player.played += cards.length;
 }
@@ -369,9 +426,18 @@ function finishTurn(player, played, discarded) {
 
   const parts = [];
   parts.push(['play', played.length ? 'played ' + names(played) : 'played nothing']);
+  if (state.turnHeal) {
+    parts.push(['heal', 'healed +' + state.turnHeal + ' to ' + state.turnHealTo + ' strength']);
+  }
   if (discarded.length) parts.push(['discard', 'discarded ' + names(discarded)]);
   if (drawn.length) parts.push(['draw', 'drew ' + drawn.length]);
   if (refill.triggered.length) parts.push(['event', 'fired ' + names(refill.triggered)]);
+  for (const fell of state.turnStrain) {
+    parts.push([
+      'strain',
+      fell.length ? 'Strength Test hit ' + fell.join(', ') : 'Strength Test — everyone held firm',
+    ]);
+  }
   if (state.turnHits.length) parts.push(['bridge', state.turnHits.map(hitText).join(', ')]);
   if (player.hand.length < state.cfg.handSize) {
     parts.push(['note', 'could not refill (deck exhausted)']);
@@ -379,6 +445,9 @@ function finishTurn(player, played, discarded) {
   addLog(player, parts);
 
   state.turnHits = [];
+  state.turnStrain = [];
+  state.turnHeal = 0;
+  state.turnHealTo = 0;
   state.turn++;
   state.active = (state.active + 1) % state.players.length;
   state.phase = 'play';
@@ -510,6 +579,9 @@ function cloneState(s) {
     starved: s.starved,
     started: s.started,
     turnHits: [],
+    turnStrain: [],
+    turnHeal: 0,
+    turnHealTo: 0,
     log: [],
     playCounts: {},
     drawCounts: {},
@@ -528,6 +600,8 @@ function cloneState(s) {
     hand: hands || p.hand.slice(),
     fresh: [],
     played: p.played,
+    health: p.health,
+    maxHealth: p.maxHealth,
   }));
   return c;
 }
@@ -600,6 +674,9 @@ function render() {
   document.getElementById('save-btn').disabled = !state.started;
   document.getElementById('new-game').textContent = state.started ? 'New Game' : 'Start Game';
   document.getElementById('hand-size-label').textContent = state.cfg.sharedHand ? 'Shared hand size' : 'Hand size';
+  document.getElementById('health-note').textContent =
+    'Every Strength Test gives each player a 50% chance to lose 1. Heal restores 1, up to ' +
+    state.cfg.startHealth + '.';
   document.getElementById('bridge-note').textContent =
     SEGMENTS + ' segments \u00d7 ' + state.cfg.segmentHp + ' hp — the bridge snaps when any one segment reaches 0.';
   document.getElementById('deck-note').textContent =
@@ -647,6 +724,11 @@ function renderStats() {
     { k: 'Discard', v: s.discard.length, sub: s.reshuffles + ' reshuffles' },
     { k: 'Events fired', v: s.eventsFired, sub: 'on draw' },
     {
+      k: 'Party',
+      v: partyHealth(),
+      sub: playersDown() ? playersDown() + ' down' : 'of ' + partyMax() + ' strength',
+    },
+    {
       k: 'Bridge',
       v: s.broken ? 'SNAP' : bridgeHp(),
       sub: s.broken ? 'turn ' + s.brokenTurn : 'of ' + bridgeMax() + ' hp',
@@ -656,6 +738,20 @@ function renderStats() {
   document.getElementById('stats').innerHTML = tiles
     .map((t) => '<div class="stat"><div class="k">' + t.k + '</div><div class="v">' + esc(t.v) + '</div><div class="sub">' + esc(t.sub) + '</div></div>')
     .join('');
+}
+
+function healthHTML(p) {
+  let pips = '';
+  for (let i = 0; i < p.maxHealth; i++) {
+    pips += '<span class="hpip' + (i < p.health ? ' on' : '') + '"></span>';
+  }
+  const label = p.health === 0 ? 'down' : p.health + ' / ' + p.maxHealth + ' strength';
+  return (
+    '<div class="health hp-' + p.health + (p.health === 0 ? ' down' : '') + '">' +
+    '<span class="health-pips">' + pips + '</span>' +
+    '<span class="health-hp">' + label + '</span>' +
+    '</div>'
+  );
 }
 
 function cardHTML(card, fresh, selectable) {
@@ -683,6 +779,7 @@ function playerPanelHTML(p) {
     '<div class="player' + (p.id === state.active && state.started ? ' active' : '') + '">' +
     '<div class="player-head"><span class="player-name">' + esc(p.name) + '</span>' +
     '<span class="player-meta">' + p.hand.length + ' cards · ' + p.played + ' played</span></div>' +
+    healthHTML(p) +
     '<div class="hand">' + handHTML(p.hand, p.fresh, isPicking() && p.id === state.active) + '</div>' +
     '</div>'
   );
@@ -695,7 +792,9 @@ function sharedPanelHTML() {
     .map(
       (p) =>
         '<span class="seat' + (p.id === state.active && state.started ? ' active' : '') + '">' +
-        esc(p.name) + '<em>' + p.played + ' played</em></span>',
+        '<span class="seat-top">' + esc(p.name) + '<em>' + p.played + ' played</em></span>' +
+        healthHTML(p) +
+        '</span>',
     )
     .join('');
   return (
@@ -935,9 +1034,16 @@ function bindSlider(id, format) {
   sync();
 }
 
-['players', 'hand-size', 'play-min', 'play-max', 'segment-hp', 'bridge-weakens', 'strength-test'].forEach(
-  (id) => bindSlider(id),
-);
+[
+  'players',
+  'hand-size',
+  'play-min',
+  'play-max',
+  'start-health',
+  'segment-hp',
+  'bridge-weakens',
+  'strength-test',
+].forEach((id) => bindSlider(id));
 bindSlider('speed', (v) => v + 'ms');
 
 // Keep the play min/max sliders from crossing over.
@@ -994,7 +1100,15 @@ document.getElementById('speed').addEventListener('change', () => {
 });
 
 // Changing table setup returns to an undealt table; turn rules apply from the next turn.
-['players', 'hand-size', 'hand-mode', 'segment-hp', 'bridge-weakens', 'strength-test'].forEach((id) =>
+[
+  'players',
+  'hand-size',
+  'hand-mode',
+  'start-health',
+  'segment-hp',
+  'bridge-weakens',
+  'strength-test',
+].forEach((id) =>
   document.getElementById(id).addEventListener('change', resetTable),
 );
 ['play-min', 'play-max', 'played-dest', 'turn-mode', 'cut-policy'].forEach((id) =>

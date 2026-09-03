@@ -305,14 +305,24 @@
 
       .seat {
         display: flex;
-        align-items: baseline;
-        gap: 0.4rem;
+        flex-direction: column;
+        gap: 0.3rem;
         border: 1px solid #ddd;
         border-radius: 5px;
         background: #fafafa;
-        padding: 0.35rem 0.6rem;
+        padding: 0.4rem 0.6rem;
         font-size: 0.8rem;
         font-weight: 600;
+      }
+
+      .seat-top {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+      }
+
+      .seat .health {
+        margin-bottom: 0;
       }
 
       .seat.active {
@@ -320,7 +330,7 @@
         background: #f1f9f1;
       }
 
-      .seat.active::before {
+      .seat.active .seat-top::before {
         content: '\25B6';
         color: #4caf50;
         font-size: 0.65rem;
@@ -403,6 +413,54 @@
         background: #fdecea;
         border-color: #d9694a;
         box-shadow: 0 0 0 2px rgba(217, 105, 74, 0.25);
+      }
+
+      /* ---------- player health ---------- */
+
+      .health {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.65rem;
+      }
+
+      .health-pips {
+        display: flex;
+        gap: 2px;
+      }
+
+      .hpip {
+        width: 10px;
+        height: 6px;
+        border-radius: 2px;
+        background: #e6e6e6;
+      }
+
+      .hpip.on {
+        background: #4caf50;
+      }
+
+      .health.hp-3 .hpip.on {
+        background: #8bc34a;
+      }
+      .health.hp-2 .hpip.on {
+        background: #e8a33d;
+      }
+      .health.hp-1 .hpip.on {
+        background: #d9694a;
+      }
+
+      .health-hp {
+        font-size: 0.7rem;
+        color: #888;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .health.down .health-hp {
+        color: #b5452a;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
 
       /* ---------- bridge ---------- */
@@ -680,6 +738,14 @@
         color: #b5452a;
         font-weight: 600;
       }
+      .log-strain {
+        color: #b07818;
+        font-weight: 600;
+      }
+      .log-heal {
+        color: #3d8b40;
+        font-weight: 600;
+      }
       .log-draw {
         color: #4caf50;
       }
@@ -783,6 +849,18 @@
               <span class="slider-val" id="hand-size-val">4</span>
             </div>
           </div>
+        </section>
+
+        <section>
+          <h3>Players</h3>
+          <div class="field">
+            <label>Starting strength</label>
+            <div class="slider-row">
+              <input type="range" id="start-health" min="1" max="10" value="5" />
+              <span class="slider-val" id="start-health-val">5</span>
+            </div>
+          </div>
+          <div class="field-note" id="health-note"></div>
         </section>
 
         <section>
