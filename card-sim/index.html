@@ -109,6 +109,11 @@
         text-align: right;
       }
 
+      .slider-val.wide {
+        min-width: 4.6rem;
+        font-size: 0.8rem;
+      }
+
       .results {
         flex: 1;
         min-width: 0;
@@ -381,10 +386,16 @@
       .card.t-action {
         border-left-color: #3b7dd8;
       }
-      .card.t-relic {
+      .card.t-item {
         border-left-color: #8a5cd6;
       }
-      .card.t-event {
+      .card.t-gift {
+        border-left-color: #c79a2b;
+      }
+      .card.t-aid {
+        border-left-color: #2f9e8f;
+      }
+      .card.t-god {
         border-left-color: #d9694a;
       }
 
@@ -461,6 +472,197 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+      }
+
+      /* ---------- kept gifts ---------- */
+
+      .kept {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.3rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .kept-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #b08c22;
+      }
+
+      .kept-chip {
+        padding: 0.1rem 0.35rem;
+        border: 1px solid #e6d08a;
+        border-radius: 3px;
+        background: #fdf7e3;
+        color: #7d6312;
+        font-size: 0.68rem;
+        font-weight: 600;
+      }
+
+      /* ---------- deck builder ---------- */
+
+      .deck-panel {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .deck-panel > summary {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .deck-panel > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .deck-panel > summary h3 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #888;
+        margin: 0;
+      }
+
+      .deck-panel > summary h3::before {
+        content: '\25B8 ';
+        color: #bbb;
+      }
+
+      .deck-panel[open] > summary h3::before {
+        content: '\25BE ';
+      }
+
+      .db-total {
+        font-size: 0.78rem;
+        color: #888;
+      }
+
+      .deck-panel > summary button {
+        margin-left: auto;
+        padding: 0.25rem 0.7rem;
+        font-size: 0.75rem;
+      }
+
+      .db-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+        align-items: start;
+        gap: 0.9rem;
+        margin-top: 0.9rem;
+      }
+
+      .db-cat {
+        border: 1px solid #eee;
+        border-radius: 6px;
+        padding: 0.5rem 0.6rem 0.3rem;
+        background: #fcfcfc;
+      }
+
+      .db-cat.god {
+        border-color: #f0c4b8;
+        background: #fef7f5;
+      }
+
+      .db-cat-head {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 0.3rem;
+      }
+
+      .db-cat-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+
+      .db-cat-label i {
+        font-style: normal;
+        font-weight: 400;
+        font-size: 0.7rem;
+        color: #aaa;
+      }
+
+      .db-cat-total {
+        margin-left: auto;
+        font-size: 0.7rem;
+        color: #999;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .db-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0;
+      }
+
+      .db-name {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.78rem;
+        line-height: 1.25;
+      }
+
+      .db-name em {
+        display: block;
+        font-style: normal;
+        font-size: 0.67rem;
+        color: #999;
+      }
+
+      .db-name em.db-na {
+        color: #ccc;
+      }
+
+      .db-step {
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+      }
+
+      button.db-btn {
+        width: 1.4rem;
+        height: 1.4rem;
+        padding: 0;
+        background: #fff;
+        border: 1px solid #ccc;
+        color: #555;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        line-height: 1;
+      }
+
+      button.db-btn:hover {
+        background: #f0f0f0;
+        border-color: #999;
+      }
+
+      input.db-qty {
+        width: 2.6rem;
+        padding: 0.2rem 0.25rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        font-family: inherit;
+      }
+
+      input.db-qty:focus {
+        outline: none;
+        border-color: #5b8dee;
       }
 
       /* ---------- bridge ---------- */
@@ -734,6 +936,7 @@
         color: #d9694a;
       }
       .log-event,
+      .log-god,
       .log-bridge {
         color: #b5452a;
         font-weight: 600;
@@ -744,6 +947,10 @@
       }
       .log-heal {
         color: #3d8b40;
+        font-weight: 600;
+      }
+      .log-keep {
+        color: #a9821c;
         font-weight: 600;
       }
       .log-draw {
@@ -807,6 +1014,53 @@
 
       .zero {
         color: #ccc;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 0.4rem;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 0.75rem;
+      }
+
+      button.tab {
+        padding: 0.35rem 0.8rem;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        color: #888;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      button.tab:hover {
+        background: none;
+        color: #555;
+      }
+
+      button.tab.active {
+        color: #222;
+        border-bottom-color: #4caf50;
+      }
+
+      .tab-pane {
+        overflow-x: auto;
+      }
+
+      .tab-pane.hidden {
+        display: none;
+      }
+
+      td.muted {
+        color: #999;
+        font-size: 0.78rem;
+      }
+
+      .table-panel + .table-panel {
+        margin-top: -0.4rem;
       }
 
       @media (max-width: 700px) {
@@ -876,22 +1130,15 @@
         </section>
 
         <section>
-          <h3>Deck</h3>
+          <h3>Acts of God</h3>
           <div class="field">
-            <label>Bridge Weakens cards</label>
+            <label>Occurs every</label>
             <div class="slider-row">
-              <input type="range" id="bridge-weakens" min="0" max="12" value="6" />
-              <span class="slider-val" id="bridge-weakens-val">6</span>
+              <input type="range" id="god-every" min="0" max="10" value="2" />
+              <span class="slider-val wide" id="god-every-val">2 turns</span>
             </div>
           </div>
-          <div class="field">
-            <label>Strength Test cards</label>
-            <div class="slider-row">
-              <input type="range" id="strength-test" min="0" max="12" value="4" />
-              <span class="slider-val" id="strength-test-val">4</span>
-            </div>
-          </div>
-          <div class="field-note" id="deck-note"></div>
+          <div class="field-note" id="god-note"></div>
         </section>
 
         <section>
@@ -919,11 +1166,19 @@
           </div>
           <div class="field-note" id="discard-note"></div>
           <div class="field">
-            <label>Auto-player cuts the ropes at</label>
+            <label>Veridian Talon hits</label>
             <select id="cut-policy">
               <option value="random">A random segment</option>
               <option value="weakest">The weakest segment</option>
               <option value="strongest">The strongest segment</option>
+              <option value="pick">A segment the player picks</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>A Talon hit</label>
+            <select id="cut-severity">
+              <option value="one">Degrades it by 1</option>
+              <option value="sever">Severs the whole segment</option>
             </select>
           </div>
           <div class="field">
@@ -972,14 +1227,29 @@
 
         <div class="players" id="players-view"></div>
 
+        <details class="deck-panel" id="deck-panel" open>
+          <summary>
+            <h3>Deck Builder</h3>
+            <span class="db-total" id="deck-total"></span>
+            <button id="deck-reset" class="ghost">Reset to default</button>
+          </summary>
+          <div class="field-note" id="deck-note"></div>
+          <div class="db-grid" id="deck-grid"></div>
+        </details>
+
+
         <div class="panel">
           <h3>Turn Log</h3>
           <div id="log"></div>
         </div>
 
         <div class="panel">
-          <h3>Card Tracker</h3>
-          <table id="tracker"></table>
+          <div class="tabs" id="tracker-tabs">
+            <button class="tab active" data-pane="pane-main">Player Deck</button>
+            <button class="tab" data-pane="pane-god">Acts of God</button>
+          </div>
+          <div class="tab-pane" id="pane-main"><table id="tracker"></table></div>
+          <div class="tab-pane hidden" id="pane-god"><table id="tracker-god"></table></div>
         </div>
       </div>
     </div>

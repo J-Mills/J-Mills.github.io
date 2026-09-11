@@ -1,41 +1,85 @@
 /* ---------------------------------- deck ---------------------------------- */
 
-const CARD_DEFS = [
-  { name: 'Heal', effect: 'Heal', qty: 4, type: 'action' },
-  { name: 'Check Rucksack', effect: 'Check Rucksack', qty: 6, type: 'action' },
-  { name: 'Switch Gold', effect: 'Switch Gold', qty: 6, type: 'action' },
-  { name: 'Defend', effect: 'Defend', qty: 2, type: 'action' },
-  { name: 'Brace', effect: 'Brace', qty: 2, type: 'action' },
-  { name: 'Veridian Talon', effect: 'Cut the Ropes', qty: 2, type: 'relic' },
-  { name: 'Sturdy Rope', effect: 'Repair the Bridge', qty: 1, type: 'relic' },
-  { name: 'Lasso', effect: 'Pull Players from a distance', qty: 1, type: 'relic' },
-  { name: 'Wind Fan of the Maw', effect: 'Push Players further', qty: 1, type: 'relic' },
-  { name: 'Hissing Hourglass', effect: 'Repeat', qty: 2, type: 'relic' },
-  { name: 'Horn of the Ancients', effect: 'Draw Players to Self', qty: 1, type: 'relic' },
-  { name: 'Gravity Stone', effect: 'Draw Players to Centre', qty: 1, type: 'relic' },
-  { name: 'Chant of Solitude', effect: 'Push All Players Away', qty: 1, type: 'relic' },
-  { name: 'Run', effect: 'Run', qty: 4, type: 'action' },
-  { name: 'Hooky Stick', effect: 'Remote Steal', qty: 1, type: 'relic' },
-  { name: 'Echo Conch', effect: 'Switch Places', qty: 1, type: 'relic' },
-  { name: 'Blood Jade Scarab', effect: 'Suck Power', qty: 2, type: 'relic' },
-  { name: 'Cinnabar Dust', effect: 'Blind', qty: 2, type: 'relic' },
-  { name: 'Bridge Weakens', effect: 'Bridge Weakens', qty: 6, type: 'event' },
-  { name: 'Strength Test', effect: 'Strength Test', qty: 4, type: 'event' },
+// The five card groups. Acts of God live in their own deck, drawn on a timer.
+const CATEGORIES = [
+  { key: 'aid', label: 'Player Aids', colour: '#2f9e8f', note: '' },
+  { key: 'gift', label: 'Gifts from the Gods', colour: '#c79a2b', note: 'permanent climb items' },
+  { key: 'item', label: 'Items', colour: '#8a5cd6', note: 'single use' },
+  { key: 'action', label: 'Actions', colour: '#3b7dd8', note: '' },
+  { key: 'god', label: 'Acts of God', colour: '#d9694a', note: 'separate deck, on a timer' },
 ];
 
-const TYPE_COLOUR = { action: '#3b7dd8', relic: '#8a5cd6', event: '#d9694a' };
-const TYPE_LABEL = { action: 'Actions', relic: 'Relics', event: 'Events' };
-// Event counts are adjustable, so the deck list is derived rather than fixed.
+// `fx` is the only part the simulation acts on; everything else is just a card.
+const CARD_DEFS = [
+  { name: 'Free Actions', type: 'aid', qty: 1, effect: 'n/a' },
+
+  { name: 'Pickaxe', type: 'gift', qty: 1, effect: 'n/a' },
+  { name: 'Climbing Equipment', type: 'gift', qty: 1, effect: 'n/a' },
+  { name: 'Bristol Gold', type: 'gift', qty: 2, effect: 'n/a' },
+  { name: 'Grappling Hook', type: 'gift', qty: 1, effect: 'n/a' },
+
+  { name: 'Veridian Talon', type: 'item', qty: 2, effect: 'Severs a random rope segment — degrades it by 1', fx: 'cut' },
+  { name: 'Lasso', type: 'item', qty: 2, effect: 'n/a' },
+  { name: 'Wind Fan', type: 'item', qty: 2, effect: 'n/a' },
+  { name: 'Hissing Hourglass', type: 'item', qty: 2, effect: 'n/a' },
+  { name: 'Horn of the Ancients', type: 'item', qty: 1, effect: 'n/a' },
+  { name: 'Chant of Solitude', type: 'item', qty: 1, effect: 'n/a' },
+  { name: 'Hooky Stick', type: 'item', qty: 2, effect: 'n/a' },
+  { name: 'Echo Conch', type: 'item', qty: 1, effect: 'n/a' },
+  { name: 'Cinnabar Dust', type: 'item', qty: 1, effect: 'n/a' },
+  { name: 'Blood Jade Scarab', type: 'item', qty: 1, effect: 'Moves 1 HP from a random player to the current player', fx: 'move-hp' },
+
+  { name: 'Heal', type: 'action', qty: 5, effect: 'Adds 1 HP to the current player', fx: 'heal' },
+  { name: 'Strength of the Jaguars', type: 'action', qty: 1, effect: 'Adds 1 HP to the current player', fx: 'heal' },
+  { name: 'Rucksack Check', type: 'action', qty: 5, effect: 'n/a' },
+  { name: 'Steal', type: 'action', qty: 10, effect: 'n/a' },
+  { name: 'Defend', type: 'action', qty: 1, effect: 'n/a' },
+  { name: 'Brace', type: 'action', qty: 1, effect: 'n/a' },
+  { name: 'Run', type: 'action', qty: 5, effect: 'n/a' },
+
+  { name: 'Bridge Weakens', type: 'god', qty: 6, effect: 'Degrades 1 rope segment by 1', fx: 'weaken' },
+  { name: 'Strength Test', type: 'god', qty: 3, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
+  { name: 'Divine Thunderstorm', type: 'god', qty: 1, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
+  { name: 'Mischief Monkey', type: 'god', qty: 1, effect: 'n/a' },
+  { name: 'Termites', type: 'god', qty: 1, effect: 'n/a' },
+];
+
+const TYPE_COLOUR = {};
+const TYPE_LABEL = {};
+for (const c of CATEGORIES) {
+  TYPE_COLOUR[c.key] = c.colour;
+  TYPE_LABEL[c.key] = c.label;
+}
+
+const MAX_QTY = 40;
+const DEFAULT_QTY = {};
+for (const d of CARD_DEFS) DEFAULT_QTY[d.name] = d.qty;
+
+// Live quantities. The deck builder writes here; everything else reads cfg.qty.
+let deckQty = Object.assign({}, DEFAULT_QTY);
+
 function deckDefs(cfg) {
-  return CARD_DEFS.map((d) => {
-    if (d.name === 'Bridge Weakens') return Object.assign({}, d, { qty: cfg.bridgeWeakens });
-    if (d.name === 'Strength Test') return Object.assign({}, d, { qty: cfg.strengthTest });
-    return d;
-  });
+  return CARD_DEFS.map((d) => Object.assign({}, d, { qty: cfg.qty[d.name] || 0 }));
+}
+
+function mainDefs(cfg) {
+  return deckDefs(cfg).filter((d) => d.type !== 'god');
+}
+
+function godDefs(cfg) {
+  return deckDefs(cfg).filter((d) => d.type === 'god');
+}
+
+function sumQty(defs) {
+  return defs.reduce((a, d) => a + d.qty, 0);
 }
 
 function deckSize(cfg) {
-  return deckDefs(cfg).reduce((a, d) => a + d.qty, 0);
+  return sumQty(mainDefs(cfg));
+}
+
+function godDeckSize(cfg) {
+  return sumQty(godDefs(cfg));
 }
 
 function typeTotals(cfg) {
@@ -64,20 +108,32 @@ function shuffle(arr) {
   return arr;
 }
 
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 /* ---------------------------------- state --------------------------------- */
 
 let state = null;
 let autoTimer = null;
 let uid = 0;
 
-function buildDeck(cfg) {
-  const deck = [];
-  for (const def of deckDefs(cfg)) {
+function buildFrom(defs) {
+  const cards = [];
+  for (const def of defs) {
     for (let i = 0; i < def.qty; i++) {
-      deck.push({ uid: uid++, name: def.name, effect: def.effect, type: def.type });
+      cards.push({ uid: uid++, name: def.name, effect: def.effect, type: def.type, fx: def.fx });
     }
   }
-  return deck;
+  return cards;
+}
+
+function buildDeck(cfg) {
+  return buildFrom(mainDefs(cfg));
+}
+
+function buildGods(cfg) {
+  return buildFrom(godDefs(cfg));
 }
 
 function readConfig() {
@@ -88,14 +144,15 @@ function readConfig() {
     sharedHand: document.getElementById('hand-mode').value === 'shared',
     manual: document.getElementById('turn-mode').value === 'manual',
     cutPolicy: document.getElementById('cut-policy').value,
+    cutSeverity: document.getElementById('cut-severity').value,
     handSize: Number(document.getElementById('hand-size').value),
     playMin: Math.min(playMin, playMax),
     playMax: Math.max(playMin, playMax),
     playedDest: document.getElementById('played-dest').value,
     startHealth: Number(document.getElementById('start-health').value),
     segmentHp: Number(document.getElementById('segment-hp').value),
-    bridgeWeakens: Number(document.getElementById('bridge-weakens').value),
-    strengthTest: Number(document.getElementById('strength-test').value),
+    godEvery: Number(document.getElementById('god-every').value),
+    qty: Object.assign({}, deckQty),
     // The discard always cycles back in; without it the table just stalls.
     reshuffle: true,
   };
@@ -108,6 +165,7 @@ function makePlayers(cfg) {
       id: i,
       name: 'Player ' + (i + 1),
       hand: [],
+      kept: [],
       fresh: [],
       played: 0,
       health: cfg.startHealth,
@@ -129,16 +187,23 @@ function heldCards() {
   return all;
 }
 
-// Pre-game: seats laid out and deck intact, but nothing dealt until Start Game.
-function resetTable() {
-  stopAuto();
+function keptCards() {
+  const all = [];
+  for (const p of state.players) all.push(...p.kept);
+  return all;
+}
 
-  const cfg = readConfig();
-  state = {
+function freshState(cfg, forecasting) {
+  return {
     cfg,
-    deck: buildDeck(cfg),
+    deck: [],
     discard: [],
     removed: [],
+    gods: [],
+    godDiscard: [],
+    godFires: {},
+    godsFired: 0,
+    godReshuffles: 0,
     players: makePlayers(cfg),
     active: 0,
     turn: 0,
@@ -146,7 +211,6 @@ function resetTable() {
     playCounts: {},
     drawCounts: {},
     reshuffles: 0,
-    eventsFired: 0,
     starved: false,
     started: false,
     bridge: new Array(SEGMENTS).fill(cfg.segmentHp),
@@ -155,95 +219,78 @@ function resetTable() {
     brokenSegment: null,
     turnHits: [],
     turnStrain: [],
+    turnMoves: [],
     turnHeal: 0,
     turnHealTo: 0,
     forecast: null,
+    forecasting: !!forecasting,
     phase: 'play',
     selected: [],
     pendingDiscard: 0,
     pendingTargets: 0,
     turnPlayed: [],
+    lastFresh: [],
   };
+}
 
-  const setup = cfg.sharedHand
+function setupText(cfg) {
+  return cfg.sharedHand
     ? cfg.playerCount + ' players sharing one hand — press Start Game to deal ' + cfg.handSize + ' cards'
     : cfg.playerCount + ' players — press Start Game to deal ' + cfg.handSize + ' cards each';
-  addLog(null, [['note', 'Table set for ' + setup]]);
+}
 
+// Pre-game: seats laid out and both decks intact, but nothing dealt yet.
+function resetTable() {
+  stopAuto();
+
+  const cfg = readConfig();
+  state = freshState(cfg);
+  state.deck = buildDeck(cfg);
+  state.gods = buildGods(cfg);
+
+  addLog(null, [['note', 'Table set for ' + setupText(cfg)]]);
+  updateForecast();
   render();
+}
+
+function dealHands() {
+  const cfg = state.cfg;
+  if (cfg.sharedHand) {
+    drawCards(state.players[0], cfg.handSize);
+  } else {
+    // Deal one card at a time around the table.
+    for (let c = 0; c < cfg.handSize; c++) {
+      for (const p of state.players) drawCards(p, 1);
+    }
+  }
+  for (const p of state.players) p.fresh = [];
+  state.lastFresh = [];
 }
 
 function startGame() {
   stopAuto();
 
   const cfg = readConfig();
-  const players = makePlayers(cfg);
+  state = freshState(cfg);
+  state.deck = shuffle(buildDeck(cfg));
+  state.gods = shuffle(buildGods(cfg));
+  state.started = true;
+  state.turn = 1;
 
-  state = {
-    cfg,
-    deck: shuffle(buildDeck(cfg)),
-    discard: [],
-    removed: [],
-    players,
-    active: 0,
-    turn: 1,
-    log: [],
-    playCounts: {},
-    drawCounts: {},
-    reshuffles: 0,
-    eventsFired: 0,
-    starved: false,
-    started: true,
-    bridge: new Array(SEGMENTS).fill(cfg.segmentHp),
-    broken: false,
-    brokenTurn: null,
-    brokenSegment: null,
-    turnHits: [],
-    turnStrain: [],
-    turnHeal: 0,
-    turnHealTo: 0,
-    forecast: null,
-    phase: 'play',
-    selected: [],
-    pendingDiscard: 0,
-    pendingTargets: 0,
-    turnPlayed: [],
-  };
-
-  const dealEvents = [];
-  if (cfg.sharedHand) {
-    dealEvents.push(...drawCards(players[0], cfg.handSize).triggered);
-  } else {
-    // Deal one card at a time around the table.
-    for (let c = 0; c < cfg.handSize; c++) {
-      for (const p of players) dealEvents.push(...drawCards(p, 1).triggered);
-    }
-  }
-  for (const p of players) p.fresh = [];
-  state.lastFresh = [];
+  dealHands();
 
   const dealt = cfg.sharedHand
     ? cfg.playerCount + ' players sharing one hand of ' + cfg.handSize + ' cards'
     : cfg.playerCount + ' players dealt ' + cfg.handSize + ' cards each';
   addLog(null, [['note', 'Game start — ' + dealt]]);
-  if (dealEvents.length) {
-    addLog(null, [['event', 'Fired on the deal: ' + names(dealEvents)]]);
-  }
-  for (const fell of state.turnStrain) {
-    addLog(null, [
-      [
-        'strain',
-        fell.length ? 'Strength Test hit ' + fell.join(', ') : 'Strength Test — everyone held firm',
-      ],
-    ]);
-  }
-  state.turnStrain = [];
-  if (state.turnHits.length) {
-    addLog(null, [['bridge', state.turnHits.map(hitText).join(', ')]]);
-    state.turnHits = [];
-  }
-  updateForecast();
+  addLog(null, [
+    [
+      'note',
+      deckSize(cfg) + '-card deck · ' + godDeckSize(cfg) + ' Acts of God · ' + godTimingText(cfg),
+    ],
+  ]);
 
+  updateForecast();
   render();
 }
 
@@ -251,6 +298,58 @@ function startGame() {
 
 function bridgeHp() {
   return state.bridge.reduce((a, b) => a + b, 0);
+}
+
+function bridgeMax() {
+  return SEGMENTS * state.cfg.segmentHp;
+}
+
+// Damage to a segment; at 0 the bridge snaps and the game moves on.
+function damageSegment(index, reason, amount) {
+  if (state.broken || state.bridge[index] <= 0) return null;
+  const dealt = Math.min(amount == null ? 1 : amount, state.bridge[index]);
+  state.bridge[index] -= dealt;
+  const hit = { index, hp: state.bridge[index], reason, dealt };
+  if (state.bridge[index] === 0) {
+    state.broken = true;
+    state.brokenTurn = state.turn;
+    state.brokenSegment = index;
+  }
+  state.turnHits.push(hit);
+  return hit;
+}
+
+// Which segment a Veridian Talon hits when nobody is choosing.
+function cutTarget() {
+  const alive = [];
+  for (let i = 0; i < SEGMENTS; i++) if (state.bridge[i] > 0) alive.push(i);
+  if (alive.length === 0) return null;
+
+  const policy = state.cfg.cutPolicy;
+  if (policy === 'weakest' || policy === 'strongest') {
+    const choose = policy === 'weakest' ? Math.min : Math.max;
+    const target = choose(...alive.map((i) => state.bridge[i]));
+    return pick(alive.filter((i) => state.bridge[i] === target));
+  }
+  return pick(alive);
+}
+
+// A sever takes the whole segment; the softer reading is a single point.
+function applyCut(index) {
+  const amount = state.cfg.cutSeverity === 'sever' ? state.bridge[index] : 1;
+  return damageSegment(index, 'Veridian Talon', amount);
+}
+
+function resolveCuts(n) {
+  for (let i = 0; i < n && !state.broken; i++) {
+    const target = cutTarget();
+    if (target === null) return;
+    applyCut(target);
+  }
+}
+
+function countCuts(cards) {
+  return cards.filter((c) => c.fx === 'cut').length;
 }
 
 /* -------------------------------- strength -------------------------------- */
@@ -267,8 +366,8 @@ function playersDown() {
   return state.players.filter((p) => p.health === 0).length;
 }
 
-// A Strength Test rolls independently against every player still standing.
-function runStrengthTest() {
+// NET 0.5 HP per player: an independent coin flip against everyone standing.
+function runStrengthTest(label) {
   const fell = [];
   for (const p of state.players) {
     if (p.health > 0 && Math.random() < 0.5) {
@@ -276,66 +375,79 @@ function runStrengthTest() {
       fell.push(p);
     }
   }
-  state.turnStrain.push(fell.map((p) => p.name + (p.health === 0 ? ' (down)' : '')));
+  state.turnStrain.push({
+    label,
+    fell: fell.map((p) => p.name + (p.health === 0 ? ' (down)' : '')),
+  });
 }
 
-function bridgeMax() {
-  return SEGMENTS * state.cfg.segmentHp;
+function healPlayer(player) {
+  if (player.health >= player.maxHealth) return;
+  player.health++;
+  state.turnHeal++;
+  state.turnHealTo = player.health;
 }
 
-// One point of damage to a segment; at 0 the bridge snaps and the game moves on.
-function damageSegment(index, reason) {
-  if (state.broken || state.bridge[index] <= 0) return null;
-  state.bridge[index]--;
-  const hit = { index, hp: state.bridge[index], reason };
-  if (state.bridge[index] === 0) {
-    state.broken = true;
-    state.brokenTurn = state.turn;
-    state.brokenSegment = index;
+// Blood Jade Scarab: one HP changes hands rather than appearing from nowhere.
+function moveHp(player) {
+  if (player.health >= player.maxHealth) return;
+  const donors = state.players.filter((p) => p.id !== player.id && p.health > 0);
+  if (donors.length === 0) return;
+  const donor = pick(donors);
+  donor.health--;
+  player.health++;
+  state.turnMoves.push(
+    '1 HP from ' + donor.name + (donor.health === 0 ? ' (down)' : '') + ' to ' + player.name,
+  );
+}
+
+/* ------------------------------- acts of god ------------------------------ */
+
+function godTimingText(cfg) {
+  return cfg.godEvery > 0
+    ? 'one drawn every ' + (cfg.godEvery === 1 ? 'turn' : cfg.godEvery + ' turns')
+    : 'never drawn';
+}
+
+function godDue() {
+  const every = state.cfg.godEvery;
+  return every > 0 && state.turn % every === 0;
+}
+
+function nextGodTurn() {
+  const every = state.cfg.godEvery;
+  if (every <= 0) return null;
+  const from = Math.max(state.turn, 1);
+  return from + ((every - (from % every)) % every);
+}
+
+function fireGod() {
+  if (state.broken) return null;
+  if (state.gods.length === 0) {
+    if (state.godDiscard.length === 0) return null;
+    state.gods = shuffle(state.godDiscard);
+    state.godDiscard = [];
+    state.godReshuffles++;
   }
-  state.turnHits.push(hit);
-  return hit;
-}
 
-// Where the auto-player aims a Cut the Ropes.
-function autoTarget() {
-  const alive = [];
-  for (let i = 0; i < SEGMENTS; i++) if (state.bridge[i] > 0) alive.push(i);
-  if (alive.length === 0) return null;
+  const card = state.gods.pop();
+  state.godDiscard.push(card);
+  state.godFires[card.name] = (state.godFires[card.name] || 0) + 1;
+  state.godsFired++;
 
-  if (state.cfg.cutPolicy === 'weakest' || state.cfg.cutPolicy === 'strongest') {
-    const pick = state.cfg.cutPolicy === 'weakest' ? Math.min : Math.max;
-    const target = pick(...alive.map((i) => state.bridge[i]));
-    const tied = alive.filter((i) => state.bridge[i] === target);
-    return tied[Math.floor(Math.random() * tied.length)];
-  }
-  return alive[Math.floor(Math.random() * alive.length)];
-}
-
-function countCuts(cards) {
-  return cards.filter((c) => c.effect === 'Cut the Ropes').length;
+  if (card.fx === 'weaken') damageSegment(randInt(0, SEGMENTS - 1), card.name, 1);
+  if (card.fx === 'strain') runStrengthTest(card.name);
+  return card;
 }
 
 /* ---------------------------------- rules --------------------------------- */
 
-// Is there a non-event card left that could actually reach a hand?
-function fillableRemains() {
-  const pool = state.cfg.reshuffle ? state.deck.concat(state.discard) : state.deck;
-  return pool.some((c) => c.type !== 'event');
-}
-
 function drawCards(player, n) {
   const drawn = [];
-  const triggered = [];
-  const cap = deckSize(state.cfg);
+  const cap = deckSize(state.cfg) + 1;
   let pulled = 0;
 
   while (drawn.length < n) {
-    // Only events left to pull anywhere: the hand can never be filled.
-    if (!fillableRemains()) {
-      state.starved = true;
-      break;
-    }
     if (state.deck.length === 0) {
       if (state.cfg.reshuffle && state.discard.length > 0) {
         state.deck = shuffle(state.discard);
@@ -346,7 +458,7 @@ function drawCards(player, n) {
         break;
       }
     }
-    // With nothing but events left to pull, drawing would cycle forever.
+    // Nothing left anywhere that could reach a hand.
     if (pulled++ > cap) {
       state.starved = true;
       break;
@@ -354,27 +466,13 @@ function drawCards(player, n) {
 
     const card = state.deck.pop();
     state.drawCounts[card.name] = (state.drawCounts[card.name] || 0) + 1;
-
-    if (card.type === 'event') {
-      // Events happen the moment they are drawn, then go straight to discard.
-      state.discard.push(card);
-      state.eventsFired++;
-      triggered.push(card);
-      if (card.name === 'Bridge Weakens') {
-        damageSegment(randInt(0, SEGMENTS - 1), 'Bridge Weakens');
-        if (state.broken) break;
-      }
-      if (card.name === 'Strength Test') runStrengthTest();
-      continue;
-    }
-
     player.hand.push(card);
     drawn.push(card);
   }
 
   player.fresh = drawn.map((c) => c.uid);
   state.lastFresh = player.fresh;
-  return { drawn, triggered };
+  return { drawn };
 }
 
 function takeRandom(hand, n) {
@@ -387,8 +485,8 @@ function takeRandom(hand, n) {
 
 function removeByUid(hand, uids) {
   const taken = [];
-  for (const uid of uids) {
-    const i = hand.findIndex((c) => c.uid === uid);
+  for (const u of uids) {
+    const i = hand.findIndex((c) => c.uid === u);
     if (i >= 0) taken.push(hand.splice(i, 1)[0]);
   }
   return taken;
@@ -397,14 +495,14 @@ function removeByUid(hand, uids) {
 function applyPlays(player, cards) {
   for (const card of cards) {
     state.playCounts[card.name] = (state.playCounts[card.name] || 0) + 1;
-    if (state.cfg.playedDest === 'removed') state.removed.push(card);
+
+    // Gifts from the Gods are permanent: they stay with the player, out of the cycle.
+    if (card.type === 'gift') player.kept.push(card);
+    else if (state.cfg.playedDest === 'removed') state.removed.push(card);
     else state.discard.push(card);
 
-    if (card.effect === 'Heal' && player.health < player.maxHealth) {
-      player.health++;
-      state.turnHeal++;
-      state.turnHealTo = player.health;
-    }
+    if (card.fx === 'heal') healPlayer(player);
+    if (card.fx === 'move-hp') moveHp(player);
   }
   player.played += cards.length;
 }
@@ -414,38 +512,47 @@ function discardsDueAfter(player, playedCount) {
   return Math.min(Math.max(0, state.cfg.playMax - playedCount), player.hand.length);
 }
 
+function strainText(s) {
+  const what = s.label || 'Strength Test';
+  return s.fell.length ? what + ' hit ' + s.fell.join(', ') : what + ' — everyone held firm';
+}
+
+function hitText(h) {
+  const seg = 'segment ' + (h.index + 1);
+  return h.hp === 0 ? seg + ' SNAPPED' : seg + ' → ' + h.hp + ' hp';
+}
+
 function finishTurn(player, played, discarded) {
   for (const card of discarded) state.discard.push(card);
   for (const p of state.players) p.fresh = [];
 
-  let refill = { drawn: [], triggered: [] };
+  let drawn = [];
   if (!state.broken) {
-    refill = drawCards(player, Math.max(0, state.cfg.handSize - player.hand.length));
+    drawn = drawCards(player, Math.max(0, state.cfg.handSize - player.hand.length)).drawn;
   }
-  const drawn = refill.drawn;
+  const god = godDue() ? fireGod() : null;
 
   const parts = [];
   parts.push(['play', played.length ? 'played ' + names(played) : 'played nothing']);
+  const gifts = played.filter((c) => c.type === 'gift');
+  if (gifts.length) parts.push(['keep', 'kept ' + names(gifts)]);
   if (state.turnHeal) {
     parts.push(['heal', 'healed +' + state.turnHeal + ' to ' + state.turnHealTo + ' strength']);
   }
+  for (const move of state.turnMoves) parts.push(['heal', 'moved ' + move]);
   if (discarded.length) parts.push(['discard', 'discarded ' + names(discarded)]);
   if (drawn.length) parts.push(['draw', 'drew ' + drawn.length]);
-  if (refill.triggered.length) parts.push(['event', 'fired ' + names(refill.triggered)]);
-  for (const fell of state.turnStrain) {
-    parts.push([
-      'strain',
-      fell.length ? 'Strength Test hit ' + fell.join(', ') : 'Strength Test — everyone held firm',
-    ]);
-  }
+  if (god) parts.push(['god', 'Act of God: ' + god.name]);
+  for (const s of state.turnStrain) parts.push(['strain', strainText(s)]);
   if (state.turnHits.length) parts.push(['bridge', state.turnHits.map(hitText).join(', ')]);
-  if (player.hand.length < state.cfg.handSize) {
+  if (!state.broken && player.hand.length < state.cfg.handSize) {
     parts.push(['note', 'could not refill (deck exhausted)']);
   }
   addLog(player, parts);
 
   state.turnHits = [];
   state.turnStrain = [];
+  state.turnMoves = [];
   state.turnHeal = 0;
   state.turnHealTo = 0;
   state.turn++;
@@ -459,11 +566,6 @@ function finishTurn(player, played, discarded) {
   render();
 }
 
-function hitText(h) {
-  const seg = 'segment ' + (h.index + 1);
-  return h.hp === 0 ? seg + ' SNAPPED' : seg + ' \u2192 ' + h.hp + ' hp';
-}
-
 function takeTurn() {
   if (!state || !state.started || state.cfg.manual || state.broken) return;
   const cfg = state.cfg;
@@ -472,11 +574,7 @@ function takeTurn() {
   const wanted = randInt(cfg.playMin, cfg.playMax);
   const played = takeRandom(player.hand, Math.min(wanted, player.hand.length));
   applyPlays(player, played);
-
-  for (let i = 0; i < countCuts(played) && !state.broken; i++) {
-    const target = autoTarget();
-    if (target !== null) damageSegment(target, 'Cut the Ropes');
-  }
+  resolveCuts(countCuts(played));
 
   const discarded = takeRandom(player.hand, discardsDueAfter(player, played.length));
   finishTurn(player, played, discarded);
@@ -506,11 +604,14 @@ function confirmSelection() {
 
     const cuts = countCuts(played);
     if (cuts > 0 && !state.broken) {
-      state.turnPlayed = played;
-      state.pendingTargets = cuts;
-      state.phase = 'target';
-      render();
-      return;
+      if (state.cfg.cutPolicy === 'pick') {
+        state.turnPlayed = played;
+        state.pendingTargets = cuts;
+        state.phase = 'target';
+        render();
+        return;
+      }
+      resolveCuts(cuts);
     }
     afterPlays(player, played);
     return;
@@ -520,10 +621,10 @@ function confirmSelection() {
   finishTurn(player, state.turnPlayed, discarded);
 }
 
-// Manual mode: the player aims a Cut the Ropes at a segment.
+// Manual mode: the player aims a Veridian Talon at a segment.
 function chooseTarget(index) {
   if (!isPicking() || state.phase !== 'target') return;
-  if (!damageSegment(index, 'Cut the Ropes')) return;
+  if (!applyCut(index)) return;
 
   // The cut changes the odds, so refresh them before the board redraws.
   updateForecast();
@@ -541,10 +642,10 @@ function selectionCap() {
     : state.pendingDiscard;
 }
 
-function toggleSelection(uid) {
-  const i = state.selected.indexOf(uid);
+function toggleSelection(cardUid) {
+  const i = state.selected.indexOf(cardUid);
   if (i >= 0) state.selected.splice(i, 1);
-  else if (state.selected.length < selectionCap()) state.selected.push(uid);
+  else if (state.selected.length < selectionCap()) state.selected.push(cardUid);
   render();
 }
 
@@ -562,42 +663,27 @@ function addLog(player, parts) {
 
 // A copy of the position that the real turn logic can be run against.
 function cloneState(s) {
-  const c = {
-    // The auto-player stands in for whoever would be choosing.
-    cfg: Object.assign({}, s.cfg, { manual: false }),
-    deck: s.deck.slice(),
-    discard: s.discard.slice(),
-    removed: s.removed.slice(),
-    bridge: s.bridge.slice(),
-    active: s.active,
-    turn: s.turn,
-    broken: s.broken,
-    brokenTurn: s.brokenTurn,
-    brokenSegment: s.brokenSegment,
-    reshuffles: s.reshuffles,
-    eventsFired: s.eventsFired,
-    starved: s.starved,
-    started: s.started,
-    turnHits: [],
-    turnStrain: [],
-    turnHeal: 0,
-    turnHealTo: 0,
-    log: [],
-    playCounts: {},
-    drawCounts: {},
-    phase: 'play',
-    selected: [],
-    pendingDiscard: 0,
-    pendingTargets: 0,
-    turnPlayed: [],
-    forecast: null,
-    forecasting: true,
-  };
-  const hands = s.cfg.sharedHand ? s.players[0].hand.slice() : null;
+  const c = freshState(Object.assign({}, s.cfg, { manual: false }), true);
+  c.deck = s.deck.slice();
+  c.discard = s.discard.slice();
+  c.removed = s.removed.slice();
+  c.gods = s.gods.slice();
+  c.godDiscard = s.godDiscard.slice();
+  c.bridge = s.bridge.slice();
+  c.active = s.active;
+  c.turn = s.turn;
+  c.broken = s.broken;
+  c.brokenTurn = s.brokenTurn;
+  c.brokenSegment = s.brokenSegment;
+  c.starved = s.starved;
+  c.started = s.started;
+
+  const shared = s.cfg.sharedHand ? s.players[0].hand.slice() : null;
   c.players = s.players.map((p) => ({
     id: p.id,
     name: p.name,
-    hand: hands || p.hand.slice(),
+    hand: shared || p.hand.slice(),
+    kept: p.kept.slice(),
     fresh: [],
     played: p.played,
     health: p.health,
@@ -606,21 +692,38 @@ function cloneState(s) {
   return c;
 }
 
+// Before the deal there is no position to copy, so deal a fresh one per trial.
+function trialState(real) {
+  if (real.started) return cloneState(real);
+
+  const s = freshState(Object.assign({}, real.cfg, { manual: false }), true);
+  s.deck = shuffle(buildDeck(s.cfg));
+  s.gods = shuffle(buildGods(s.cfg));
+  s.started = true;
+  s.turn = 1;
+
+  const prev = state;
+  state = s;
+  dealHands();
+  state = prev;
+  return s;
+}
+
 // Play the position out many times to see when the bridge tends to go.
 function updateForecast() {
   if (!state || state.forecasting) return;
-  if (!state.started || state.broken) {
-    if (state) state.forecast = null;
+  if (state.broken) {
+    state.forecast = null;
     return;
   }
 
   const real = state;
-  const from = real.turn;
+  const from = real.started ? real.turn : 1;
   const delays = [];
   const bySegment = new Array(SEGMENTS).fill(0);
 
   for (let t = 0; t < FORECAST_TRIALS; t++) {
-    state = cloneState(real);
+    state = trialState(real);
     let guard = 0;
     while (!state.broken && state.turn - from < FORECAST_HORIZON && guard++ <= FORECAST_HORIZON) {
       takeTurn();
@@ -639,6 +742,7 @@ function updateForecast() {
 
   state.forecast = {
     from,
+    fresh: !real.started,
     trials: FORECAST_TRIALS,
     broke: delays.length,
     median: sorted.length ? sorted[Math.floor(sorted.length / 2)] : null,
@@ -663,10 +767,12 @@ function render() {
   renderStats();
   renderLegend();
   renderBridge();
+  renderDeckBuilder();
   renderTurnBar();
   renderPlayers();
   renderLog();
   renderTracker();
+
   const auto = state.started && !state.cfg.manual && !state.broken;
   for (const id of ['next-turn', 'auto', 'skip']) {
     document.getElementById(id).disabled = !auto;
@@ -675,12 +781,16 @@ function render() {
   document.getElementById('new-game').textContent = state.started ? 'New Game' : 'Start Game';
   document.getElementById('hand-size-label').textContent = state.cfg.sharedHand ? 'Shared hand size' : 'Hand size';
   document.getElementById('health-note').textContent =
-    'Every Strength Test gives each player a 50% chance to lose 1. Heal restores 1, up to ' +
-    state.cfg.startHealth + '.';
+    'Strength Test and Divine Thunderstorm each give every player a 50% chance to lose 1 (net 0.5). ' +
+    'Heal and Strength of the Jaguars restore 1, up to ' + state.cfg.startHealth + '.';
   document.getElementById('bridge-note').textContent =
-    SEGMENTS + ' segments \u00d7 ' + state.cfg.segmentHp + ' hp — the bridge snaps when any one segment reaches 0.';
+    SEGMENTS + ' segments × ' + state.cfg.segmentHp + ' hp — the bridge snaps when any one segment reaches 0.';
+  document.getElementById('god-note').textContent =
+    godDeckSize(state.cfg) + ' Acts of God, ' + godTimingText(state.cfg) +
+    ' at the end of the turn. They are their own deck and never mix into the player deck.';
   document.getElementById('deck-note').textContent =
-    deckSize(state.cfg) + ' cards in the deck; only Bridge Weakens damages the bridge.';
+    'Quantities are live: change any number and the table re-sets with the new deck, so the snap forecast ' +
+    'at the top of the page updates straight away.';
   document.getElementById('discard-note').textContent =
     'Anything not played is discarded, so ' + state.cfg.playMax + ' cards leave the hand each turn.';
 }
@@ -688,30 +798,37 @@ function render() {
 function renderLegend() {
   const held = {};
   for (const c of heldCards()) held[c.type] = (held[c.type] || 0) + 1;
+  const kept = keptCards().length;
 
   const totals = typeTotals(state.cfg);
-  const items = Object.keys(TYPE_LABEL).map((type) => {
-    const counts =
-      type === 'event'
-        ? totals[type] + ' total · fires on draw'
-        : totals[type] + ' total' + (state.started ? ' · ' + (held[type] || 0) + ' in hands' : '');
+  const items = CATEGORIES.map((cat) => {
+    const total = totals[cat.key] || 0;
+    let counts;
+    if (cat.key === 'god') counts = total + ' total · ' + state.gods.length + ' left in the deck';
+    else if (cat.key === 'gift') {
+      counts = total + ' total' + (state.started ? ' · ' + kept + ' kept' : '');
+    } else {
+      counts = total + ' total' + (state.started ? ' · ' + (held[cat.key] || 0) + ' in hands' : '');
+    }
     return (
       '<span class="legend-item">' +
-      '<span class="legend-key" style="background:' + TYPE_COLOUR[type] + '"></span>' +
-      '<span class="legend-label">' + TYPE_LABEL[type] + '</span>' +
-      '<span class="legend-count">' + counts + '</span>' +
+      '<span class="legend-key" style="background:' + cat.colour + '"></span>' +
+      '<span class="legend-label">' + esc(cat.label) + '</span>' +
+      '<span class="legend-count">' + esc(counts) + '</span>' +
       '</span>'
     );
   });
 
   document.getElementById('legend').innerHTML =
-    items.join('') + '<span class="legend-total">' + deckSize(state.cfg) + ' cards in the deck</span>';
+    items.join('') +
+    '<span class="legend-total">' + deckSize(state.cfg) + '-card deck · ' +
+    godDeckSize(state.cfg) + ' Acts of God</span>';
 }
 
 function renderStats() {
   const s = state;
   const round = Math.floor((s.turn - 1) / s.players.length) + 1;
-  const inHands = heldCards().length;
+  const nextGod = nextGodTurn();
   const tiles = [
     { k: 'Turn', v: s.started ? s.turn : '—', sub: s.started ? 'round ' + round : 'not started' },
     {
@@ -720,9 +837,14 @@ function renderStats() {
       sub: s.started ? 'to act' : 'awaiting deal',
     },
     { k: 'Deck', v: s.deck.length, sub: 'of ' + deckSize(s.cfg) },
-    { k: 'In hands', v: inHands, sub: s.cfg.sharedHand ? 'shared hand' : s.players.length + ' players' },
+    { k: 'In hands', v: heldCards().length, sub: s.cfg.sharedHand ? 'shared hand' : s.players.length + ' players' },
     { k: 'Discard', v: s.discard.length, sub: s.reshuffles + ' reshuffles' },
-    { k: 'Events fired', v: s.eventsFired, sub: 'on draw' },
+    { k: 'Gifts kept', v: keptCards().length, sub: 'permanent' },
+    {
+      k: 'Acts of God',
+      v: s.godsFired,
+      sub: nextGod === null ? 'switched off' : s.started ? 'next on turn ' + nextGod : 'every ' + s.cfg.godEvery + ' turns',
+    },
     {
       k: 'Party',
       v: partyHealth(),
@@ -759,11 +881,12 @@ function cardHTML(card, fresh, selectable) {
     (fresh ? ' fresh' : '') +
     (selectable ? ' selectable' : '') +
     (state.selected.includes(card.uid) ? ' selected' : '');
+  const sub = card.effect && card.effect !== 'n/a' ? card.effect : TYPE_LABEL[card.type];
   return (
     '<div class="card t-' + card.type + cls + '" data-uid="' + card.uid + '">' +
     (fresh ? '<div class="card-tag">drawn</div>' : '') +
     '<div class="cn">' + esc(card.name) + '</div>' +
-    '<div class="ce">' + esc(card.effect) + '</div>' +
+    '<div class="ce">' + esc(sub) + '</div>' +
     '</div>'
   );
 }
@@ -774,12 +897,21 @@ function handHTML(cards, fresh, selectable) {
     : '<div class="empty-hand">' + (state.started ? 'empty hand' : 'not dealt yet') + '</div>';
 }
 
+function keptHTML(p) {
+  if (!p.kept.length) return '';
+  const chips = p.kept
+    .map((c) => '<span class="kept-chip">' + esc(c.name) + '</span>')
+    .join('');
+  return '<div class="kept"><span class="kept-label">Kept</span>' + chips + '</div>';
+}
+
 function playerPanelHTML(p) {
   return (
     '<div class="player' + (p.id === state.active && state.started ? ' active' : '') + '">' +
     '<div class="player-head"><span class="player-name">' + esc(p.name) + '</span>' +
     '<span class="player-meta">' + p.hand.length + ' cards · ' + p.played + ' played</span></div>' +
     healthHTML(p) +
+    keptHTML(p) +
     '<div class="hand">' + handHTML(p.hand, p.fresh, isPicking() && p.id === state.active) + '</div>' +
     '</div>'
   );
@@ -794,6 +926,7 @@ function sharedPanelHTML() {
         '<span class="seat' + (p.id === state.active && state.started ? ' active' : '') + '">' +
         '<span class="seat-top">' + esc(p.name) + '<em>' + p.played + ' played</em></span>' +
         healthHTML(p) +
+        keptHTML(p) +
         '</span>',
     )
     .join('');
@@ -875,11 +1008,14 @@ function forecastHTML() {
     })
     .join('');
 
+  const where = f.fresh ? 'from a fresh deal with this deck' : 'from here';
+  const first = f.fresh ? ' · turn 1 <b>' + pct(f.next) + '</b>' : ' · next turn <b>' + pct(f.next) + '</b>';
+
   return (
     '<div class="forecast">' +
-    '<h4>Snap forecast — ' + f.trials + ' playouts from here, random play</h4>' +
+    '<h4>Snap forecast — ' + f.trials + ' playouts ' + where + ', random play</h4>' +
     '<div class="forecast-line">' + headline +
-    ' · next turn <b>' + pct(f.next) + '</b>' +
+    first +
     ' · within 5 <b>' + pct(f.in5) + '</b>' +
     ' · within 10 <b>' + pct(f.in10) + '</b>' +
     ' · within 20 <b>' + pct(f.in20) + '</b>' +
@@ -909,10 +1045,11 @@ function renderTurnBar() {
 
   if (state.phase === 'target') {
     const left = state.pendingTargets;
+    const verb = state.cfg.cutSeverity === 'sever' ? 'sever' : 'degrade';
     bar.className = 'panel turn-bar discarding';
     bar.innerHTML =
       '<span class="turn-bar-text">' +
-      esc(player.name + ' — cut the ropes: pick a bridge segment' + (left > 1 ? ' (' + left + ' cuts left)' : '')) +
+      esc(player.name + ' — Veridian Talon: pick a segment to ' + verb + (left > 1 ? ' (' + left + ' left)' : '')) +
       '</span>';
     return;
   }
@@ -961,40 +1098,141 @@ function renderLog() {
     .join('');
 }
 
-function renderTracker() {
-  const inHand = {};
-  for (const c of heldCards()) inHand[c.name] = (inHand[c.name] || 0) + 1;
-  const inDeck = {};
-  for (const c of state.deck) inDeck[c.name] = (inDeck[c.name] || 0) + 1;
-  const inDiscard = {};
-  for (const c of state.discard) inDiscard[c.name] = (inDiscard[c.name] || 0) + 1;
-  const out = {};
-  for (const c of state.removed) out[c.name] = (out[c.name] || 0) + 1;
+/* ------------------------------ deck builder ------------------------------ */
 
-  const cell = (n) => '<td class="num' + (n ? '' : ' zero') + '">' + n + '</td>';
+let deckBuilderBuilt = false;
 
-  const rows = deckDefs(state.cfg).map((def) => {
+function buildDeckBuilder() {
+  const blocks = CATEGORIES.map((cat) => {
+    const rows = CARD_DEFS.filter((d) => d.type === cat.key)
+      .map((d) => {
+        const note = d.effect && d.effect !== 'n/a'
+          ? '<em>' + esc(d.effect) + '</em>'
+          : '<em class="db-na">no simulated effect</em>';
+        return (
+          '<div class="db-row">' +
+          '<span class="db-name">' + esc(d.name) + note + '</span>' +
+          '<span class="db-step">' +
+          '<button class="db-btn" data-card="' + esc(d.name) + '" data-delta="-1" aria-label="one fewer ' + esc(d.name) + '">−</button>' +
+          '<input class="db-qty" type="number" min="0" max="' + MAX_QTY + '" step="1" ' +
+          'data-card="' + esc(d.name) + '" value="' + (deckQty[d.name] || 0) + '" />' +
+          '<button class="db-btn" data-card="' + esc(d.name) + '" data-delta="1" aria-label="one more ' + esc(d.name) + '">+</button>' +
+          '</span>' +
+          '</div>'
+        );
+      })
+      .join('');
+
     return (
-      '<tr><td><span class="swatch" style="background:' + TYPE_COLOUR[def.type] + '"></span>' +
-      esc(def.name) + '</td>' +
-      '<td>' + esc(def.effect) + '</td>' +
-      cell(def.qty) +
-      cell(inDeck[def.name] || 0) +
-      cell(inHand[def.name] || 0) +
-      cell(inDiscard[def.name] || 0) +
-      cell(out[def.name] || 0) +
-      cell(state.playCounts[def.name] || 0) +
-      cell(state.drawCounts[def.name] || 0) +
-      '</tr>'
+      '<div class="db-cat' + (cat.key === 'god' ? ' god' : '') + '">' +
+      '<div class="db-cat-head">' +
+      '<span class="swatch" style="background:' + cat.colour + '"></span>' +
+      '<span class="db-cat-label">' + esc(cat.label) + (cat.note ? ' <i>' + esc(cat.note) + '</i>' : '') + '</span>' +
+      '<span class="db-cat-total" data-cat="' + cat.key + '">0</span>' +
+      '</div>' + rows +
+      '</div>'
     );
   }).join('');
 
+  document.getElementById('deck-grid').innerHTML = blocks;
+}
+
+function updateDeckBuilderValues() {
+  const totals = typeTotals(state.cfg);
+
+  for (const input of document.querySelectorAll('.db-qty')) {
+    const value = String(state.cfg.qty[input.dataset.card] || 0);
+    // Leave the box alone while it is being typed into.
+    if (document.activeElement !== input && input.value !== value) input.value = value;
+  }
+  for (const el of document.querySelectorAll('.db-cat-total')) {
+    el.textContent = (totals[el.dataset.cat] || 0) + ' cards';
+  }
+  document.getElementById('deck-total').textContent =
+    deckSize(state.cfg) + ' in the player deck · ' + godDeckSize(state.cfg) + ' Acts of God';
+  document.getElementById('deck-reset').disabled = isDefaultDeck();
+}
+
+function renderDeckBuilder() {
+  if (!deckBuilderBuilt) {
+    buildDeckBuilder();
+    deckBuilderBuilt = true;
+  }
+  updateDeckBuilderValues();
+}
+
+function isDefaultDeck() {
+  return CARD_DEFS.every((d) => (deckQty[d.name] || 0) === DEFAULT_QTY[d.name]);
+}
+
+function setQty(name, value) {
+  const n = Math.max(0, Math.min(MAX_QTY, Math.round(Number(value) || 0)));
+  if (deckQty[name] === n) return false;
+  deckQty[name] = n;
+  return true;
+}
+
+/* -------------------------------- trackers -------------------------------- */
+
+function countBy(cards) {
+  const out = {};
+  for (const c of cards) out[c.name] = (out[c.name] || 0) + 1;
+  return out;
+}
+
+function renderTracker() {
+  const inHand = countBy(heldCards());
+  const inDeck = countBy(state.deck);
+  const inDiscard = countBy(state.discard);
+  const kept = countBy(keptCards());
+  const out = countBy(state.removed);
+  const cell = (n) => '<td class="num' + (n ? '' : ' zero') + '">' + n + '</td>';
+
+  const rows = mainDefs(state.cfg)
+    .filter((def) => def.qty > 0)
+    .map(
+      (def) =>
+        '<tr><td><span class="swatch" style="background:' + TYPE_COLOUR[def.type] + '"></span>' +
+        esc(def.name) + '</td>' +
+        '<td class="muted">' + esc(TYPE_LABEL[def.type]) + '</td>' +
+        cell(def.qty) +
+        cell(inDeck[def.name] || 0) +
+        cell(inHand[def.name] || 0) +
+        cell(inDiscard[def.name] || 0) +
+        cell(kept[def.name] || 0) +
+        cell(out[def.name] || 0) +
+        cell(state.playCounts[def.name] || 0) +
+        cell(state.drawCounts[def.name] || 0) +
+        '</tr>',
+    )
+    .join('');
+
   document.getElementById('tracker').innerHTML =
-    '<thead><tr><th>Card</th><th>Effect</th><th class="num">Qty</th><th class="num">Deck</th>' +
-    '<th class="num">Hands</th><th class="num">Discard</th><th class="num">Out</th>' +
-    '<th class="num">Played</th><th class="num">Drawn</th></tr></thead><tbody>' +
-    rows +
-    '</tbody>';
+    '<thead><tr><th>Card</th><th>Group</th><th class="num">Qty</th><th class="num">Deck</th>' +
+    '<th class="num">Hands</th><th class="num">Discard</th><th class="num">Kept</th><th class="num">Out</th>' +
+    '<th class="num">Played</th><th class="num">Drawn</th></tr></thead><tbody>' + rows + '</tbody>';
+
+  const godDeck = countBy(state.gods);
+  const godDisc = countBy(state.godDiscard);
+  const godRows = godDefs(state.cfg)
+    .filter((def) => def.qty > 0)
+    .map(
+      (def) =>
+        '<tr><td><span class="swatch" style="background:' + TYPE_COLOUR[def.type] + '"></span>' +
+        esc(def.name) + '</td>' +
+        '<td class="muted">' + esc(def.effect === 'n/a' ? 'no simulated effect' : def.effect) + '</td>' +
+        cell(def.qty) +
+        cell(godDeck[def.name] || 0) +
+        cell(godDisc[def.name] || 0) +
+        cell(state.godFires[def.name] || 0) +
+        '</tr>',
+    )
+    .join('');
+
+  document.getElementById('tracker-god').innerHTML =
+    '<thead><tr><th>Act of God</th><th>Effect</th><th class="num">Qty</th>' +
+    '<th class="num">Deck</th><th class="num">Discard</th><th class="num">Fired</th></tr></thead><tbody>' +
+    godRows + '</tbody>';
 }
 
 /* ---------------------------------- controls ------------------------------- */
@@ -1034,16 +1272,10 @@ function bindSlider(id, format) {
   sync();
 }
 
-[
-  'players',
-  'hand-size',
-  'play-min',
-  'play-max',
-  'start-health',
-  'segment-hp',
-  'bridge-weakens',
-  'strength-test',
-].forEach((id) => bindSlider(id));
+['players', 'hand-size', 'play-min', 'play-max', 'start-health', 'segment-hp'].forEach((id) =>
+  bindSlider(id),
+);
+bindSlider('god-every', (v) => (Number(v) === 0 ? 'never' : Number(v) === 1 ? 'every turn' : v + ' turns'));
 bindSlider('speed', (v) => v + 'ms');
 
 // Keep the play min/max sliders from crossing over.
@@ -1078,6 +1310,54 @@ document.getElementById('turn-bar').addEventListener('click', (e) => {
   if (e.target.id === 'confirm-selection') confirmSelection();
 });
 
+// Re-deal on a short delay so holding down a stepper does not re-run the
+// forecast on every click.
+let deckTimer = null;
+function deckChanged() {
+  if (deckTimer) clearTimeout(deckTimer);
+  updateDeckBuilderValues();
+  deckTimer = setTimeout(() => {
+    deckTimer = null;
+    resetTable();
+  }, 140);
+}
+
+document.getElementById('deck-grid').addEventListener('click', (e) => {
+  const btn = e.target.closest('.db-btn');
+  if (!btn) return;
+  const name = btn.dataset.card;
+  if (setQty(name, (deckQty[name] || 0) + Number(btn.dataset.delta))) {
+    state.cfg.qty = Object.assign({}, deckQty);
+    deckChanged();
+  }
+});
+
+document.getElementById('deck-grid').addEventListener('change', (e) => {
+  const input = e.target.closest('.db-qty');
+  if (!input) return;
+  setQty(input.dataset.card, input.value);
+  input.value = String(deckQty[input.dataset.card]);
+  state.cfg.qty = Object.assign({}, deckQty);
+  deckChanged();
+});
+
+document.getElementById('tracker-tabs').addEventListener('click', (e) => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  for (const t of document.querySelectorAll('#tracker-tabs .tab')) {
+    t.classList.toggle('active', t === tab);
+  }
+  for (const pane of document.querySelectorAll('.tab-pane')) {
+    pane.classList.toggle('hidden', pane.id !== tab.dataset.pane);
+  }
+});
+
+document.getElementById('deck-reset').addEventListener('click', () => {
+  deckQty = Object.assign({}, DEFAULT_QTY);
+  state.cfg.qty = Object.assign({}, deckQty);
+  deckChanged();
+});
+
 document.getElementById('new-game').addEventListener('click', startGame);
 document.getElementById('next-turn').addEventListener('click', () => {
   stopAuto();
@@ -1100,18 +1380,10 @@ document.getElementById('speed').addEventListener('change', () => {
 });
 
 // Changing table setup returns to an undealt table; turn rules apply from the next turn.
-[
-  'players',
-  'hand-size',
-  'hand-mode',
-  'start-health',
-  'segment-hp',
-  'bridge-weakens',
-  'strength-test',
-].forEach((id) =>
+['players', 'hand-size', 'hand-mode', 'start-health', 'segment-hp', 'god-every'].forEach((id) =>
   document.getElementById(id).addEventListener('change', resetTable),
 );
-['play-min', 'play-max', 'played-dest', 'turn-mode', 'cut-policy'].forEach((id) =>
+['play-min', 'play-max', 'played-dest', 'turn-mode', 'cut-policy', 'cut-severity'].forEach((id) =>
   document.getElementById(id).addEventListener('change', () => {
     if (!state) return;
     state.cfg = readConfig();
