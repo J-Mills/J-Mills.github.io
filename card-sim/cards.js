@@ -9,9 +9,11 @@ const CATEGORIES = [
 ];
 
 function treasureDef(name, blue, red) {
-  const signed = (value) => value > 0 ? '+' + value : String(value);
+  const signed = (value) => (value > 0 ? '+' + value : String(value));
   return {
-    name, type: 'item', qty: 1,
+    name,
+    type: 'item',
+    qty: 1,
     effect: 'Blue ' + signed(blue) + ' · Red ' + signed(red),
     points: { blue, red },
   };
@@ -48,6 +50,7 @@ const CARD_DEFS = [
   treasureDef("Statue of H'mraa", 2, 0),
   treasureDef('Heart of Xal Tok', -3, 3),
   treasureDef("Breath of H'mraa", 3, -3),
+  treasureDef('Gold Sarcophagus', 6, 6),
 
   { name: 'Heal', type: 'action', qty: 5, effect: 'Adds 1 HP to the current player', fx: 'heal' },
   { name: 'Strength of the Jaguars', type: 'action', qty: 1, effect: 'Adds 1 HP to the current player', fx: 'heal' },
@@ -161,7 +164,10 @@ function buildDeck(cfg, deck) {
 }
 
 function buildStarterDeck(cfg) {
-  return buildFrom(STARTER_DEFS.map((d) => Object.assign({}, d, { qty: cfg.starterQty[d.name] || 0 })), 'Start');
+  return buildFrom(
+    STARTER_DEFS.map((d) => Object.assign({}, d, { qty: cfg.starterQty[d.name] || 0 })),
+    'Start',
+  );
 }
 
 function readConfig() {
@@ -313,15 +319,9 @@ function startGame() {
   state.turnHits = [];
   state.turnStrain = [];
 
-  const dealt = cfg.playerCount + ' players dealt up to four starting cards each; shared hand of ' +
-    state.players[0].hand.length + ' bridge cards';
+  const dealt = cfg.playerCount + ' players dealt up to four starting cards each; shared hand of ' + state.players[0].hand.length + ' bridge cards';
   addLog(null, [['note', 'Game start — ' + dealt]]);
-  addLog(null, [
-    [
-      'note',
-      'Deck A: ' + deckSize(cfg, 'A') + ' cards · Deck B: ' + deckSize(cfg, 'B') + ' cards',
-    ],
-  ]);
+  addLog(null, [['note', 'Deck A: ' + deckSize(cfg, 'A') + ' cards · Deck B: ' + deckSize(cfg, 'B') + ' cards']]);
   if (openingGods.length) {
     const parts = [['god', 'Opening draw triggered ' + names(openingGods)]];
     for (const result of openingStrain) parts.push(['strain', result]);
@@ -433,9 +433,7 @@ function moveHp(player) {
   const donor = pick(donors);
   donor.health--;
   player.health++;
-  state.turnMoves.push(
-    '1 HP from ' + donor.name + (donor.health === 0 ? ' (down)' : '') + ' to ' + player.name,
-  );
+  state.turnMoves.push('1 HP from ' + donor.name + (donor.health === 0 ? ' (down)' : '') + ' to ' + player.name);
 }
 
 /* ------------------------------- acts of god ------------------------------ */
@@ -702,8 +700,7 @@ function replaceBackpack(slot) {
   const old = player.backpack[slot];
   if (old) state.discard.push(old);
   player.backpack[slot] = card;
-  addLog(player, [['keep', 'stored ' + card.name + ' in backpack slot ' + (slot + 1) +
-    (old ? '; discarded ' + old.name : '')]]);
+  addLog(player, [['keep', 'stored ' + card.name + ' in backpack slot ' + (slot + 1) + (old ? '; discarded ' + old.name : '')]]);
   afterManualAction();
 }
 
@@ -869,8 +866,7 @@ function render() {
   document.getElementById('new-game').disabled = starterSize(state.cfg) < state.cfg.playerCount * 4;
   document.getElementById('new-game').textContent = state.started ? 'New Game' : 'Start Game';
   document.getElementById('health-note').textContent =
-    'Strength Test and Divine Thunderstorm each give every player a 50% chance to lose 1 (net 0.5). ' +
-    'Heal and Strength of the Jaguars restore 1, up to 10.';
+    'Strength Test and Divine Thunderstorm each give every player a 50% chance to lose 1 (net 0.5). ' + 'Heal and Strength of the Jaguars restore 1, up to 10.';
   document.getElementById('bridge-note').textContent =
     SEGMENTS + ' segments × ' + state.cfg.segmentHp + ' hp — the bridge snaps when any one segment reaches 0.';
   document.getElementById('god-note').textContent =
@@ -907,17 +903,21 @@ function renderLegend() {
     }
     return (
       '<span class="legend-item">' +
-      '<span class="legend-key" style="background:' + cat.colour + '"></span>' +
-      '<span class="legend-label">' + esc(cat.label) + '</span>' +
-      '<span class="legend-count">' + esc(counts) + '</span>' +
+      '<span class="legend-key" style="background:' +
+      cat.colour +
+      '"></span>' +
+      '<span class="legend-label">' +
+      esc(cat.label) +
+      '</span>' +
+      '<span class="legend-count">' +
+      esc(counts) +
+      '</span>' +
       '</span>'
     );
   });
 
   document.getElementById('legend').innerHTML =
-    items.join('') +
-    '<span class="legend-total">Deck A ' + deckSize(state.cfg, 'A') + ' · Deck B ' +
-    deckSize(state.cfg, 'B') + '</span>';
+    items.join('') + '<span class="legend-total">Deck A ' + deckSize(state.cfg, 'A') + ' · Deck B ' + deckSize(state.cfg, 'B') + '</span>';
 }
 
 function renderStats() {
@@ -936,8 +936,16 @@ function renderStats() {
     { k: 'Party', v: partyHealth(), sub: 'of ' + partyMax() },
   ];
   document.getElementById('stats').innerHTML = tiles
-    .map((t) => '<div class="stat"><span class="k">' + esc(t.k) + '</span><span class="v">' + esc(t.v) + '</span>' +
-      (t.sub ? '<span class="sub">' + esc(t.sub) + '</span>' : '') + '</div>')
+    .map(
+      (t) =>
+        '<div class="stat"><span class="k">' +
+        esc(t.k) +
+        '</span><span class="v">' +
+        esc(t.v) +
+        '</span>' +
+        (t.sub ? '<span class="sub">' + esc(t.sub) + '</span>' : '') +
+        '</div>',
+    )
     .join('');
 }
 
@@ -948,28 +956,50 @@ function healthHTML(p) {
   }
   const label = p.health === 0 ? 'down' : p.health + ' / ' + p.maxHealth + ' strength';
   return (
-    '<div class="health hp-' + p.health + (p.health === 0 ? ' down' : '') + '">' +
-    '<span class="health-pips">' + pips + '</span>' +
-    '<span class="health-hp">' + label + '</span>' +
+    '<div class="health hp-' +
+    p.health +
+    (p.health === 0 ? ' down' : '') +
+    '">' +
+    '<span class="health-pips">' +
+    pips +
+    '</span>' +
+    '<span class="health-hp">' +
+    label +
+    '</span>' +
     '</div>'
   );
 }
 
 function cardHTML(card, fresh, selectable) {
   const glyph = { gift: '✦', item: '◆', action: '➤', god: '☄' }[card.type];
-  const cls =
-    (fresh ? ' fresh' : '') +
-    (selectable ? ' selectable' : '') +
-    (state.selected.includes(card.uid) ? ' selected' : '');
+  const cls = (fresh ? ' fresh' : '') + (selectable ? ' selectable' : '') + (state.selected.includes(card.uid) ? ' selected' : '');
   const sub = card.effect && card.effect !== 'n/a' ? card.effect : TYPE_LABEL[card.type];
   return (
-    '<div class="card deck-' + card.deck.toLowerCase() + ' t-' + card.type + cls + '" data-uid="' + card.uid + '"' +
-    (selectable ? ' role="button" tabindex="0" aria-label="Select ' + esc(card.name) + '"' : '') + '>' +
-    '<div class="card-top"><span>' + esc(TYPE_LABEL[card.type]) + '</span><span class="card-mark">' +
-    (fresh ? '<span class="card-tag">drawn</span>' : '') + esc(card.deck) + '</span></div>' +
-    '<div class="card-glyph" aria-hidden="true">' + glyph + '</div>' +
-    '<div class="cn">' + esc(card.name) + '</div>' +
-    '<div class="ce">' + esc(sub) + '</div>' +
+    '<div class="card deck-' +
+    card.deck.toLowerCase() +
+    ' t-' +
+    card.type +
+    cls +
+    '" data-uid="' +
+    card.uid +
+    '"' +
+    (selectable ? ' role="button" tabindex="0" aria-label="Select ' + esc(card.name) + '"' : '') +
+    '>' +
+    '<div class="card-top"><span>' +
+    esc(TYPE_LABEL[card.type]) +
+    '</span><span class="card-mark">' +
+    (fresh ? '<span class="card-tag">drawn</span>' : '') +
+    esc(card.deck) +
+    '</span></div>' +
+    '<div class="card-glyph" aria-hidden="true">' +
+    glyph +
+    '</div>' +
+    '<div class="cn">' +
+    esc(card.name) +
+    '</div>' +
+    '<div class="ce">' +
+    esc(sub) +
+    '</div>' +
     '</div>'
   );
 }
@@ -982,65 +1012,105 @@ function handHTML(cards, fresh, selectable) {
 
 function keptHTML(p) {
   if (!p.kept.length) return '';
-  const chips = p.kept
-    .map((c) => '<span class="kept-chip">' + esc(c.name) + '</span>')
-    .join('');
+  const chips = p.kept.map((c) => '<span class="kept-chip">' + esc(c.name) + '</span>').join('');
   return '<div class="kept"><span class="kept-label">Kept</span>' + chips + '</div>';
 }
 
 function playerGodPoints(player) {
   const held = [...player.backpack, player.bank, ...player.kept];
-  return held.reduce((total, card) => {
-    if (card && card.points) {
-      total.blue += card.points.blue || 0;
-      total.red += card.points.red || 0;
-    }
-    return total;
-  }, { blue: 0, red: 0 });
+  return held.reduce(
+    (total, card) => {
+      if (card && card.points) {
+        total.blue += card.points.blue || 0;
+        total.red += card.points.red || 0;
+      }
+      return total;
+    },
+    { blue: 0, red: 0 },
+  );
 }
 
 function sharedPanelHTML() {
   const cards = state.players[0].hand;
   const played = state.players.reduce((a, p) => a + p.played, 0);
-  const chosen = state.selected.length === 1
-    ? cards.find((card) => card.uid === state.selected[0]) : null;
+  const chosen = state.selected.length === 1 ? cards.find((card) => card.uid === state.selected[0]) : null;
   const seats = state.players
-    .map(
-      (p) => {
-        const points = playerGodPoints(p);
-        const canSwap = isPicking() && state.phase === 'play' && p.id === state.active && chosen && chosen.type === 'item';
-        const slots = Array.from({ length: 4 }, (_, i) => {
-          const card = p.backpack[i];
-          return '<div class="backpack-card' + (canSwap ? ' swappable' : '') + '" data-player="' + p.id + '" data-slot="' + i + '">' +
-            '<span class="backpack-slot">Slot ' + (i + 1) + '</span><strong>' + (card ? esc(card.name) : 'Empty') + '</strong>' +
-            (card ? '<small>' + esc(card.effect) + '</small>' : '') +
-            '<span class="backpack-actions">' +
-            (canSwap ? '<button class="swap-backpack" type="button" aria-label="Replace slot ' + (i + 1) + ' with ' + esc(chosen.name) + '">Swap</button>' : '') +
-            '</span></div>';
-        }).join('');
-        return '<div class="seat' + (p.id === state.active && state.started ? ' active' : '') + '">' +
-        '<span class="seat-top"><span class="seat-name">' + esc(p.name) + '</span>' +
-        '<span class="god-scores" aria-label="Blue ' + points.blue + ' points, red ' + points.red + ' points">' +
-        '<span class="god-score blue" title="Blue value">Blue <b>' + points.blue + '</b></span>' +
-        '<span class="god-score red" title="Red value">Red <b>' + points.red + '</b></span></span>' +
-        '<em>' + p.played + ' played</em></span>' +
+    .map((p) => {
+      const points = playerGodPoints(p);
+      const canSwap = isPicking() && state.phase === 'play' && p.id === state.active && chosen && chosen.type === 'item';
+      const slots = Array.from({ length: 4 }, (_, i) => {
+        const card = p.backpack[i];
+        return (
+          '<div class="backpack-card' +
+          (canSwap ? ' swappable' : '') +
+          '" data-player="' +
+          p.id +
+          '" data-slot="' +
+          i +
+          '">' +
+          '<span class="backpack-slot">Slot ' +
+          (i + 1) +
+          '</span><strong>' +
+          (card ? esc(card.name) : 'Empty') +
+          '</strong>' +
+          (card ? '<small>' + esc(card.effect) + '</small>' : '') +
+          '<span class="backpack-actions">' +
+          (canSwap ? '<button class="swap-backpack" type="button" aria-label="Replace slot ' + (i + 1) + ' with ' + esc(chosen.name) + '">Swap</button>' : '') +
+          '</span></div>'
+        );
+      }).join('');
+      return (
+        '<div class="seat' +
+        (p.id === state.active && state.started ? ' active' : '') +
+        '">' +
+        '<span class="seat-top"><span class="seat-name">' +
+        esc(p.name) +
+        '</span>' +
+        '<span class="god-scores" aria-label="Blue ' +
+        points.blue +
+        ' points, red ' +
+        points.red +
+        ' points">' +
+        '<span class="god-score blue" title="Blue value">Blue <b>' +
+        points.blue +
+        '</b></span>' +
+        '<span class="god-score red" title="Red value">Red <b>' +
+        points.red +
+        '</b></span></span>' +
+        '<em>' +
+        p.played +
+        ' played</em></span>' +
         healthHTML(p) +
         keptHTML(p) +
-        '<div class="backpack-row">' + slots + '</div>' +
-        '<div class="bank-slot"><span>Bank slot</span><strong>' + (p.bank ? esc(p.bank.name) : 'Empty') + '</strong>' +
-        (p.bank && isPicking() && state.phase === 'play' && p.id === state.active
-          ? '<button class="play-banked" type="button">Play</button>' : '') + '</div>' +
-        '</div>';
-      },
-    )
+        '<div class="backpack-row">' +
+        slots +
+        '</div>' +
+        '<div class="bank-slot"><span>Bank slot</span><strong>' +
+        (p.bank ? esc(p.bank.name) : 'Empty') +
+        '</strong>' +
+        (p.bank && isPicking() && state.phase === 'play' && p.id === state.active ? '<button class="play-banked" type="button">Play</button>' : '') +
+        '</div>' +
+        '</div>'
+      );
+    })
     .join('');
   return (
-    '<div class="player' + (state.started ? ' active' : '') + '">' +
+    '<div class="player' +
+    (state.started ? ' active' : '') +
+    '">' +
     '<div class="player-head"><span class="player-name plain">Shared Bridge Hand</span>' +
-    '<span class="player-meta">' + cards.length + ' cards · ' + played + ' played this game</span></div>' +
-    '<div class="hand">' + handHTML(cards, state.lastFresh || [], isPicking() && state.phase === 'play') + '</div>' +
+    '<span class="player-meta">' +
+    cards.length +
+    ' cards · ' +
+    played +
+    ' played this game</span></div>' +
+    '<div class="hand">' +
+    handHTML(cards, state.lastFresh || [], isPicking() && state.phase === 'play') +
     '</div>' +
-    '<div class="panel"><h3>Player Backpacks &amp; Banks</h3><div class="seat-row">' + seats + '</div></div>'
+    '</div>' +
+    '<div class="panel"><h3>Player Backpacks &amp; Banks</h3><div class="seat-row">' +
+    seats +
+    '</div></div>'
   );
 }
 
@@ -1050,24 +1120,38 @@ function renderBridge() {
 
   const segs = state.bridge
     .map((hp, i) => {
-      const cls =
-        'seg hp-' + hp + (hp === 0 ? ' broken' : '') + (targeting && hp > 0 ? ' targetable' : '');
+      const cls = 'seg hp-' + hp + (hp === 0 ? ' broken' : '') + (targeting && hp > 0 ? ' targetable' : '');
       let pips = '';
       for (let p = 0; p < state.cfg.segmentHp; p++) {
         pips += '<span class="pip' + (p < hp ? ' on' : '') + '"></span>';
       }
-      const note = hp === 0
-        ? 'snapped'
-        : risk
-          ? Math.round(risk[i] * 100) + '% to break here'
-          : '&nbsp;';
+      const note = hp === 0 ? 'snapped' : risk ? Math.round(risk[i] * 100) + '% to break here' : '&nbsp;';
       return (
-        '<div class="' + cls + '" data-seg="' + i + '" aria-label="Segment ' + (i + 1) + ': ' + hp + ' of ' + state.cfg.segmentHp + ' rope health"' +
-        (targeting && hp > 0 ? ' role="button" tabindex="0"' : '') + '>' +
-        '<div class="seg-label">Seg ' + (i + 1) + '</div>' +
-        '<div class="pips">' + pips + '</div>' +
-        '<div class="seg-hp">' + hp + ' hp</div>' +
-        '<div class="seg-risk">' + note + '</div>' +
+        '<div class="' +
+        cls +
+        '" data-seg="' +
+        i +
+        '" aria-label="Segment ' +
+        (i + 1) +
+        ': ' +
+        hp +
+        ' of ' +
+        state.cfg.segmentHp +
+        ' rope health"' +
+        (targeting && hp > 0 ? ' role="button" tabindex="0"' : '') +
+        '>' +
+        '<div class="seg-label">Seg ' +
+        (i + 1) +
+        '</div>' +
+        '<div class="pips">' +
+        pips +
+        '</div>' +
+        '<div class="seg-hp">' +
+        hp +
+        ' hp</div>' +
+        '<div class="seg-risk">' +
+        note +
+        '</div>' +
         '</div>'
       );
     })
@@ -1075,15 +1159,27 @@ function renderBridge() {
 
   document.getElementById('bridge').innerHTML =
     '<div class="bridge-head"><h3>The Bridge</h3>' +
-    '<span class="bridge-hp">' + bridgeHp() + ' / ' + bridgeMax() + ' hp across ' + SEGMENTS + ' segments</span></div>' +
-    '<div class="bridge-scene"><div class="bridge-row">' + segs + '</div></div>';
+    '<span class="bridge-hp">' +
+    bridgeHp() +
+    ' / ' +
+    bridgeMax() +
+    ' hp across ' +
+    SEGMENTS +
+    ' segments</span></div>' +
+    '<div class="bridge-scene"><div class="bridge-row">' +
+    segs +
+    '</div></div>';
   document.getElementById('forecast').innerHTML = forecastHTML();
 
   const banner = document.getElementById('broken-banner');
   if (state.broken) {
     banner.className = 'broken-banner';
     banner.innerHTML =
-      'The bridge snapped on turn ' + state.brokenTurn + ' — segment ' + (state.brokenSegment + 1) + ' gave way.' +
+      'The bridge snapped on turn ' +
+      state.brokenTurn +
+      ' — segment ' +
+      (state.brokenSegment + 1) +
+      ' gave way.' +
       '<span>Phase 2 begins. Press Start Game to run it again.</span>';
   } else {
     banner.className = '';
@@ -1101,15 +1197,21 @@ function forecastHTML() {
   const headline =
     f.median === null
       ? 'The bridge held in every simulation.'
-      : 'Snaps around <b>turn ' + (f.from + f.median) + '</b> (' +
-        (f.median === 0 ? 'this turn' : 'in ' + f.median + ' turns') + ')';
+      : 'Snaps around <b>turn ' + (f.from + f.median) + '</b> (' + (f.median === 0 ? 'this turn' : 'in ' + f.median + ' turns') + ')';
 
   const peak = Math.max(...f.hist, 1);
   const bars = f.hist
     .map((n, i) => {
       const h = Math.round((n / peak) * 100);
-      return '<div class="hist-bar" style="height:' + Math.max(h, n ? 4 : 1) + '%" title="turn ' +
-        (f.from + i) + ': ' + Math.round((n / f.trials) * 100) + '%"></div>';
+      return (
+        '<div class="hist-bar" style="height:' +
+        Math.max(h, n ? 4 : 1) +
+        '%" title="turn ' +
+        (f.from + i) +
+        ': ' +
+        Math.round((n / f.trials) * 100) +
+        '%"></div>'
+      );
     })
     .join('');
 
@@ -1118,16 +1220,33 @@ function forecastHTML() {
 
   return (
     '<div class="forecast">' +
-    '<h4>Snap forecast — ' + f.trials + ' playouts ' + where + ', random play</h4>' +
-    '<div class="forecast-line">' + headline +
+    '<h4>Snap forecast — ' +
+    f.trials +
+    ' playouts ' +
+    where +
+    ', random play</h4>' +
+    '<div class="forecast-line">' +
+    headline +
     first +
-    ' · within 5 <b>' + pct(f.in5) + '</b>' +
-    ' · within 10 <b>' + pct(f.in10) + '</b>' +
-    ' · within 20 <b>' + pct(f.in20) + '</b>' +
+    ' · within 5 <b>' +
+    pct(f.in5) +
+    '</b>' +
+    ' · within 10 <b>' +
+    pct(f.in10) +
+    '</b>' +
+    ' · within 20 <b>' +
+    pct(f.in20) +
+    '</b>' +
     (survived ? ' · held past ' + FORECAST_HORIZON + ' turns in ' + pct(1 - f.broke / f.trials) : '') +
     '</div>' +
-    '<div class="hist">' + bars + '</div>' +
-    '<div class="hist-axis"><span>turn ' + f.from + '</span><span>turn ' + (f.from + HIST_TURNS - 1) + '</span></div>' +
+    '<div class="hist">' +
+    bars +
+    '</div>' +
+    '<div class="hist-axis"><span>turn ' +
+    f.from +
+    '</span><span>turn ' +
+    (f.from + HIST_TURNS - 1) +
+    '</span></div>' +
     '</div>'
   );
 }
@@ -1149,25 +1268,31 @@ function renderTurnBar() {
     const left = state.pendingTargets;
     bar.className = 'panel turn-bar discarding';
     bar.innerHTML =
-      '<span class="turn-bar-text">' +
-      esc(player.name + ' — Veridian Talon: pick a segment to degrade' + (left > 1 ? ' (' + left + ' left)' : '')) +
-      '</span>';
+      '<span class="turn-bar-text">' + esc(player.name + ' — Veridian Talon: pick a segment to degrade' + (left > 1 ? ' (' + left + ' left)' : '')) + '</span>';
     return;
   }
-  const chosen = state.selected.length === 1
-    ? player.hand.find((card) => card.uid === state.selected[0]) : null;
+  const chosen = state.selected.length === 1 ? player.hand.find((card) => card.uid === state.selected[0]) : null;
   const treasure = isTreasure(chosen);
   bar.className = 'panel turn-bar';
   bar.innerHTML =
-    '<span class="turn-bar-text">' + esc(player.name) + ' — select a shared card, then choose an action. Keep going until you pass.</span>' +
-    '<button id="play-selection"' + (chosen && !treasure ? '' : ' disabled') + '>Play</button>' +
-    '<button id="discard-selection" class="danger"' + (chosen ? '' : ' disabled') + '>Discard</button>' +
-    '<button id="bank-selection" class="secondary"' + (chosen && !treasure ? '' : ' disabled') + '>Bank</button>' +
+    '<span class="turn-bar-text">' +
+    esc(player.name) +
+    ' — select a shared card, then choose an action. Keep going until you pass.</span>' +
+    '<button id="play-selection"' +
+    (chosen && !treasure ? '' : ' disabled') +
+    '>Play</button>' +
+    '<button id="discard-selection" class="danger"' +
+    (chosen ? '' : ' disabled') +
+    '>Discard</button>' +
+    '<button id="bank-selection" class="secondary"' +
+    (chosen && !treasure ? '' : ' disabled') +
+    '>Bank</button>' +
     '<button id="pass-turn" class="secondary">Pass Turn</button>' +
     (treasure
       ? '<span class="turn-hint">To keep this treasure, Swap it into a backpack slot. The replaced card goes to discard.</span>'
       : chosen && chosen.type === 'item'
-        ? '<span class="turn-hint">You can also Swap this item into one of your backpack slots.</span>' : '');
+        ? '<span class="turn-hint">You can also Swap this item into one of your backpack slots.</span>'
+        : '');
 }
 
 function renderPlayers() {
@@ -1196,17 +1321,42 @@ function buildDeckBuilder() {
     const blocks = CATEGORIES.map((cat) => {
       const rows = CARD_DEFS.filter((d) => d.type === cat.key)
         .map((d) => {
-          const note = d.effect && d.effect !== 'n/a'
-            ? '<em>' + esc(d.effect) + '</em>'
-            : '<em class="db-na">no simulated effect</em>';
+          const note = d.effect && d.effect !== 'n/a' ? '<em>' + esc(d.effect) + '</em>' : '<em class="db-na">no simulated effect</em>';
           return (
             '<div class="db-row">' +
-            '<span class="db-name">' + esc(d.name) + note + '</span>' +
+            '<span class="db-name">' +
+            esc(d.name) +
+            note +
+            '</span>' +
             '<span class="db-step">' +
-            '<button class="db-btn" data-deck="' + deck + '" data-card="' + esc(d.name) + '" data-delta="-1" aria-label="one fewer ' + esc(d.name) + ' in Deck ' + deck + '">−</button>' +
-            '<input class="db-qty" type="number" min="0" max="' + MAX_QTY + '" step="1" ' +
-            'data-deck="' + deck + '" data-card="' + esc(d.name) + '" value="' + (deckQty[deck][d.name] || 0) + '" />' +
-            '<button class="db-btn" data-deck="' + deck + '" data-card="' + esc(d.name) + '" data-delta="1" aria-label="one more ' + esc(d.name) + ' in Deck ' + deck + '">+</button>' +
+            '<button class="db-btn" data-deck="' +
+            deck +
+            '" data-card="' +
+            esc(d.name) +
+            '" data-delta="-1" aria-label="one fewer ' +
+            esc(d.name) +
+            ' in Deck ' +
+            deck +
+            '">−</button>' +
+            '<input class="db-qty" type="number" min="0" max="' +
+            MAX_QTY +
+            '" step="1" ' +
+            'data-deck="' +
+            deck +
+            '" data-card="' +
+            esc(d.name) +
+            '" value="' +
+            (deckQty[deck][d.name] || 0) +
+            '" />' +
+            '<button class="db-btn" data-deck="' +
+            deck +
+            '" data-card="' +
+            esc(d.name) +
+            '" data-delta="1" aria-label="one more ' +
+            esc(d.name) +
+            ' in Deck ' +
+            deck +
+            '">+</button>' +
             '</span>' +
             '</div>'
           );
@@ -1214,12 +1364,24 @@ function buildDeckBuilder() {
         .join('');
 
       return (
-        '<div class="db-cat' + (cat.key === 'god' ? ' god' : '') + '">' +
+        '<div class="db-cat' +
+        (cat.key === 'god' ? ' god' : '') +
+        '">' +
         '<div class="db-cat-head">' +
-        '<span class="swatch" style="background:' + cat.colour + '"></span>' +
-        '<span class="db-cat-label">' + esc(cat.label) + (cat.note ? ' <i>' + esc(cat.note) + '</i>' : '') + '</span>' +
-        '<span class="db-cat-total" data-deck="' + deck + '" data-cat="' + cat.key + '">0</span>' +
-        '</div>' + rows +
+        '<span class="swatch" style="background:' +
+        cat.colour +
+        '"></span>' +
+        '<span class="db-cat-label">' +
+        esc(cat.label) +
+        (cat.note ? ' <i>' + esc(cat.note) + '</i>' : '') +
+        '</span>' +
+        '<span class="db-cat-total" data-deck="' +
+        deck +
+        '" data-cat="' +
+        cat.key +
+        '">0</span>' +
+        '</div>' +
+        rows +
         '</div>'
       );
     }).join('');
@@ -1266,12 +1428,34 @@ let starterBuilderBuilt = false;
 
 function renderStarterBuilder() {
   if (!starterBuilderBuilt) {
-    document.getElementById('starter-grid').innerHTML = '<div class="db-cat">' + STARTER_DEFS.map((def) =>
-      '<div class="db-row"><span class="db-name">' + esc(def.name) + '<em>' + esc(def.effect) + '</em></span>' +
-      '<span class="db-step"><button class="db-btn" data-card="' + esc(def.name) + '" data-delta="-1" aria-label="one fewer ' + esc(def.name) + '">−</button>' +
-      '<input class="db-qty" type="number" min="0" max="' + MAX_QTY + '" step="1" data-card="' + esc(def.name) + '" value="' + starterQty[def.name] + '" />' +
-      '<button class="db-btn" data-card="' + esc(def.name) + '" data-delta="1" aria-label="one more ' + esc(def.name) + '">+</button></span></div>'
-    ).join('') + '</div>';
+    document.getElementById('starter-grid').innerHTML =
+      '<div class="db-cat">' +
+      STARTER_DEFS.map(
+        (def) =>
+          '<div class="db-row"><span class="db-name">' +
+          esc(def.name) +
+          '<em>' +
+          esc(def.effect) +
+          '</em></span>' +
+          '<span class="db-step"><button class="db-btn" data-card="' +
+          esc(def.name) +
+          '" data-delta="-1" aria-label="one fewer ' +
+          esc(def.name) +
+          '">−</button>' +
+          '<input class="db-qty" type="number" min="0" max="' +
+          MAX_QTY +
+          '" step="1" data-card="' +
+          esc(def.name) +
+          '" value="' +
+          starterQty[def.name] +
+          '" />' +
+          '<button class="db-btn" data-card="' +
+          esc(def.name) +
+          '" data-delta="1" aria-label="one more ' +
+          esc(def.name) +
+          '">+</button></span></div>',
+      ).join('') +
+      '</div>';
     starterBuilderBuilt = true;
   }
   for (const input of document.querySelectorAll('#starter-grid .db-qty')) {
@@ -1312,32 +1496,37 @@ function renderTracker() {
   for (const deck of DECKS) {
     const rows = deckDefs(state.cfg, deck)
       .filter((def) => def.qty > 0)
-      .map(
-        (def) => {
-          const key = deck + ':' + def.name;
-          return (
-            '<tr><td><span class="swatch" style="background:' + TYPE_COLOUR[def.type] + '"></span>' +
-            esc(def.name) + '</td>' +
-            '<td class="muted">' + esc(TYPE_LABEL[def.type]) + '</td>' +
-            cell(def.qty) +
-            cell((inDeck[key] || 0) + (inReserve[key] || 0)) +
-            cell(inHand[key] || 0) +
-            cell(inDiscard[key] || 0) +
-            cell(kept[key] || 0) +
-            cell(out[key] || 0) +
-            cell(state.playCounts[key] || 0) +
-            cell(state.godFires[key] || 0) +
-            cell(state.drawCounts[key] || 0) +
-            '</tr>'
-          );
-        },
-      )
+      .map((def) => {
+        const key = deck + ':' + def.name;
+        return (
+          '<tr><td><span class="swatch" style="background:' +
+          TYPE_COLOUR[def.type] +
+          '"></span>' +
+          esc(def.name) +
+          '</td>' +
+          '<td class="muted">' +
+          esc(TYPE_LABEL[def.type]) +
+          '</td>' +
+          cell(def.qty) +
+          cell((inDeck[key] || 0) + (inReserve[key] || 0)) +
+          cell(inHand[key] || 0) +
+          cell(inDiscard[key] || 0) +
+          cell(kept[key] || 0) +
+          cell(out[key] || 0) +
+          cell(state.playCounts[key] || 0) +
+          cell(state.godFires[key] || 0) +
+          cell(state.drawCounts[key] || 0) +
+          '</tr>'
+        );
+      })
       .join('');
 
     document.getElementById('tracker-' + deck.toLowerCase()).innerHTML =
       '<thead><tr><th>Card</th><th>Group</th><th class="num">Qty</th><th class="num">Deck</th>' +
       '<th class="num">Hands</th><th class="num">Discard</th><th class="num">Kept</th><th class="num">Out</th>' +
-      '<th class="num">Played</th><th class="num">Triggered</th><th class="num">Drawn</th></tr></thead><tbody>' + rows + '</tbody>';
+      '<th class="num">Played</th><th class="num">Triggered</th><th class="num">Drawn</th></tr></thead><tbody>' +
+      rows +
+      '</tbody>';
   }
 }
 
@@ -1378,9 +1567,7 @@ function bindSlider(id, format) {
   sync();
 }
 
-['players', 'play-min', 'play-max', 'start-health', 'segment-hp'].forEach((id) =>
-  bindSlider(id),
-);
+['players', 'play-min', 'play-max', 'start-health', 'segment-hp'].forEach((id) => bindSlider(id));
 bindSlider('speed', (v) => v + 'ms');
 
 // Keep the play min/max sliders from crossing over.
@@ -1402,9 +1589,15 @@ document.getElementById('play-max').addEventListener('input', () => {
 });
 
 document.getElementById('players-view').addEventListener('click', (e) => {
-  if (e.target.closest('.play-banked')) { playBanked(); return; }
+  if (e.target.closest('.play-banked')) {
+    playBanked();
+    return;
+  }
   const slot = e.target.closest('.swap-backpack')?.closest('.backpack-card');
-  if (slot) { replaceBackpack(Number(slot.dataset.slot)); return; }
+  if (slot) {
+    replaceBackpack(Number(slot.dataset.slot));
+    return;
+  }
   const el = e.target.closest('.card.selectable');
   if (el) toggleSelection(Number(el.dataset.uid));
 });
@@ -1535,9 +1728,7 @@ document.getElementById('speed').addEventListener('change', () => {
 });
 
 // Changing table setup returns to an undealt table; turn rules apply from the next turn.
-['players', 'start-health', 'segment-hp'].forEach((id) =>
-  document.getElementById(id).addEventListener('change', resetTable),
-);
+['players', 'start-health', 'segment-hp'].forEach((id) => document.getElementById(id).addEventListener('change', resetTable));
 ['play-min', 'play-max', 'played-dest', 'turn-mode', 'cut-policy'].forEach((id) =>
   document.getElementById(id).addEventListener('change', () => {
     if (!state) return;
