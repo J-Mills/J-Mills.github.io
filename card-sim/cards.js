@@ -66,7 +66,7 @@ const CARD_DEFS = [
 
   { name: 'Wrath of the Maw', type: 'god', qty: 0, effect: 'A random bridge segment loses 1 HP', fx: 'weaken' },
   { name: "Xal Tok's Rage", type: 'god', qty: 0, effect: 'A random bridge segment 4–6 loses 1 HP', fx: 'weaken-second-half' },
-  { name: "h'mraa's Rage also", type: 'god', qty: 0, effect: 'A random bridge segment 1–3 loses 1 HP', fx: 'weaken-first-half' },
+  { name: "H'mraa's Rage also", type: 'god', qty: 0, effect: 'A random bridge segment 1–3 loses 1 HP', fx: 'weaken-first-half' },
   { name: 'Strength Test', type: 'god', qty: 3, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
   { name: 'Divine Thunderstorm', type: 'god', qty: 1, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
   { name: 'Mischief Monkey', type: 'god', qty: 1, effect: 'n/a' },
@@ -93,7 +93,7 @@ const DEFAULT_QTY = {
   A: deckQuantities({
     'Strength Test': 2,
     'Divine Thunderstorm': 1,
-    "h'mraa's Rage also": 2,
+    "H'mraa's Rage also": 2,
     "Xal Tok's Rage": 2,
     'The Call of Xal Tok': 1,
     "The Call of H'mraa": 1,
@@ -188,8 +188,8 @@ function renamedGodQuantities(quantities) {
   for (const [oldName, newName] of [
     ['Rage of the Maw', 'Wrath of the Maw'],
     ['Bridge Weakens', 'Wrath of the Maw'],
-    ["H'mraa's Rage also", "h'mraa's Rage also"],
-    ["H'mraa's Rage", "h'mraa's Rage also"],
+    ["H'mraa's Rage also", "H'mraa's Rage also"],
+    ["H'mraa's Rage", "H'mraa's Rage also"],
   ]) {
     if (!Object.hasOwn(renamed, oldName)) continue;
     if (!Object.hasOwn(renamed, newName)) renamed[newName] = renamed[oldName];
