@@ -1,24 +1,34 @@
 /* ---------------------------------- deck ---------------------------------- */
 
-// The five card groups. Acts of God live in their own deck, drawn on a timer.
+// Both decks can contain every group. Acts of God fire when drawn.
 const CATEGORIES = [
-  { key: 'aid', label: 'Player Aids', colour: '#2f9e8f', note: '' },
+  { key: 'god', label: 'Acts of God', colour: '#d9694a', note: 'trigger when drawn' },
   { key: 'gift', label: 'Gifts from the Gods', colour: '#c79a2b', note: 'permanent climb items' },
-  { key: 'item', label: 'Items', colour: '#8a5cd6', note: 'single use' },
+  { key: 'item', label: 'Items', colour: '#8a5cd6', note: '' },
   { key: 'action', label: 'Actions', colour: '#3b7dd8', note: '' },
-  { key: 'god', label: 'Acts of God', colour: '#d9694a', note: 'separate deck, on a timer' },
 ];
 
-// `fx` is the only part the simulation acts on; everything else is just a card.
-const CARD_DEFS = [
-  { name: 'Free Actions', type: 'aid', qty: 1, effect: 'n/a' },
+function treasureDef(name, blue, red) {
+  const signed = (value) => value > 0 ? '+' + value : String(value);
+  return {
+    name, type: 'item', qty: 1,
+    effect: 'Blue ' + signed(blue) + ' · Red ' + signed(red),
+    points: { blue, red },
+  };
+}
 
+function isTreasure(card) {
+  return !!(card && card.points);
+}
+
+// `fx` drives immediate effects. Treasure values count while a player holds the card.
+const CARD_DEFS = [
   { name: 'Pickaxe', type: 'gift', qty: 1, effect: 'n/a' },
   { name: 'Climbing Equipment', type: 'gift', qty: 1, effect: 'n/a' },
   { name: 'Bristol Gold', type: 'gift', qty: 2, effect: 'n/a' },
   { name: 'Grappling Hook', type: 'gift', qty: 1, effect: 'n/a' },
 
-  { name: 'Veridian Talon', type: 'item', qty: 2, effect: 'Severs a random rope segment — degrades it by 1', fx: 'cut' },
+  { name: 'Veridian Talon', type: 'item', qty: 2, effect: 'Degrades a rope segment by 1', fx: 'cut' },
   { name: 'Lasso', type: 'item', qty: 2, effect: 'n/a' },
   { name: 'Wind Fan', type: 'item', qty: 2, effect: 'n/a' },
   { name: 'Hissing Hourglass', type: 'item', qty: 2, effect: 'n/a' },
@@ -28,6 +38,16 @@ const CARD_DEFS = [
   { name: 'Echo Conch', type: 'item', qty: 1, effect: 'n/a' },
   { name: 'Cinnabar Dust', type: 'item', qty: 1, effect: 'n/a' },
   { name: 'Blood Jade Scarab', type: 'item', qty: 1, effect: 'Moves 1 HP from a random player to the current player', fx: 'move-hp' },
+  treasureDef('Quartz Gold', 2, 0),
+  treasureDef('Glacial Gold', 3, 0),
+  treasureDef('Brimstone Gold', 0, 2),
+  treasureDef('Igneous Gold', 0, 3),
+  treasureDef('Neutral Gold', 2, 2),
+  treasureDef('Small Gold', 1, 1),
+  treasureDef('Statue of Xal Tok', 0, 2),
+  treasureDef("Statue of H'mraa", 2, 0),
+  treasureDef('Heart of Xal Tok', -3, 3),
+  treasureDef("Breath of H'mraa", 3, -3),
 
   { name: 'Heal', type: 'action', qty: 5, effect: 'Adds 1 HP to the current player', fx: 'heal' },
   { name: 'Strength of the Jaguars', type: 'action', qty: 1, effect: 'Adds 1 HP to the current player', fx: 'heal' },
@@ -42,6 +62,8 @@ const CARD_DEFS = [
   { name: 'Divine Thunderstorm', type: 'god', qty: 1, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
   { name: 'Mischief Monkey', type: 'god', qty: 1, effect: 'n/a' },
   { name: 'Termites', type: 'god', qty: 1, effect: 'n/a' },
+  { name: 'The Call of Xal Tok', type: 'god', qty: 1, effect: 'Effect not specified' },
+  { name: "The Call of H'mraa", type: 'god', qty: 1, effect: 'Effect not specified' },
 ];
 
 const TYPE_COLOUR = {};
@@ -55,35 +77,41 @@ const MAX_QTY = 40;
 const DEFAULT_QTY = {};
 for (const d of CARD_DEFS) DEFAULT_QTY[d.name] = d.qty;
 
-// Live quantities. The deck builder writes here; everything else reads cfg.qty.
-let deckQty = Object.assign({}, DEFAULT_QTY);
+const DECKS = ['A', 'B'];
+// Each deck starts with the same list and can be tuned independently.
+let deckQty = { A: Object.assign({}, DEFAULT_QTY), B: Object.assign({}, DEFAULT_QTY) };
 
-function deckDefs(cfg) {
-  return CARD_DEFS.map((d) => Object.assign({}, d, { qty: cfg.qty[d.name] || 0 }));
-}
+const STARTER_DEFS = [
+  { name: 'Small Gold Coin', type: 'item', qty: 8, effect: 'Blue 1 · Red 1', points: { blue: 1, red: 1 } },
+  { name: 'Small Red Coin', type: 'item', qty: 8, effect: 'Blue 0 · Red 1', points: { blue: 0, red: 1 } },
+  { name: 'Small Blue Coin', type: 'item', qty: 8, effect: 'Blue 1 · Red 0', points: { blue: 1, red: 0 } },
+  { name: 'Rocks', type: 'item', qty: 8, effect: 'No value', points: { blue: 0, red: 0 } },
+];
+const DEFAULT_STARTER_QTY = Object.fromEntries(STARTER_DEFS.map((d) => [d.name, d.qty]));
+let starterQty = Object.assign({}, DEFAULT_STARTER_QTY);
 
-function mainDefs(cfg) {
-  return deckDefs(cfg).filter((d) => d.type !== 'god');
-}
-
-function godDefs(cfg) {
-  return deckDefs(cfg).filter((d) => d.type === 'god');
+function deckDefs(cfg, deck) {
+  return CARD_DEFS.map((d) => Object.assign({}, d, { qty: cfg.qty[deck][d.name] || 0 }));
 }
 
 function sumQty(defs) {
   return defs.reduce((a, d) => a + d.qty, 0);
 }
 
-function deckSize(cfg) {
-  return sumQty(mainDefs(cfg));
+function deckSize(cfg, deck) {
+  return sumQty(deckDefs(cfg, deck));
 }
 
-function godDeckSize(cfg) {
-  return sumQty(godDefs(cfg));
+function totalDeckSize(cfg) {
+  return DECKS.reduce((sum, deck) => sum + deckSize(cfg, deck), 0);
 }
 
-function typeTotals(cfg) {
-  return deckDefs(cfg).reduce((acc, d) => {
+function starterSize(cfg) {
+  return STARTER_DEFS.reduce((sum, def) => sum + (cfg.starterQty[def.name] || 0), 0);
+}
+
+function typeTotals(cfg, deck) {
+  return deckDefs(cfg, deck).reduce((acc, d) => {
     acc[d.type] = (acc[d.type] || 0) + d.qty;
     return acc;
   }, {});
@@ -118,22 +146,22 @@ let state = null;
 let autoTimer = null;
 let uid = 0;
 
-function buildFrom(defs) {
+function buildFrom(defs, deck) {
   const cards = [];
   for (const def of defs) {
     for (let i = 0; i < def.qty; i++) {
-      cards.push({ uid: uid++, name: def.name, effect: def.effect, type: def.type, fx: def.fx });
+      cards.push({ uid: uid++, deck, name: def.name, effect: def.effect, type: def.type, fx: def.fx, points: def.points });
     }
   }
   return cards;
 }
 
-function buildDeck(cfg) {
-  return buildFrom(mainDefs(cfg));
+function buildDeck(cfg, deck) {
+  return buildFrom(deckDefs(cfg, deck), deck);
 }
 
-function buildGods(cfg) {
-  return buildFrom(godDefs(cfg));
+function buildStarterDeck(cfg) {
+  return buildFrom(STARTER_DEFS.map((d) => Object.assign({}, d, { qty: cfg.starterQty[d.name] || 0 })), 'Start');
 }
 
 function readConfig() {
@@ -141,18 +169,16 @@ function readConfig() {
   const playMax = Number(document.getElementById('play-max').value);
   return {
     playerCount: Number(document.getElementById('players').value),
-    sharedHand: document.getElementById('hand-mode').value === 'shared',
     manual: document.getElementById('turn-mode').value === 'manual',
     cutPolicy: document.getElementById('cut-policy').value,
-    cutSeverity: document.getElementById('cut-severity').value,
-    handSize: Number(document.getElementById('hand-size').value),
+    handSize: 4,
     playMin: Math.min(playMin, playMax),
     playMax: Math.max(playMin, playMax),
     playedDest: document.getElementById('played-dest').value,
     startHealth: Number(document.getElementById('start-health').value),
     segmentHp: Number(document.getElementById('segment-hp').value),
-    godEvery: Number(document.getElementById('god-every').value),
-    qty: Object.assign({}, deckQty),
+    qty: { A: Object.assign({}, deckQty.A), B: Object.assign({}, deckQty.B) },
+    starterQty: Object.assign({}, starterQty),
     // The discard always cycles back in; without it the table just stalls.
     reshuffle: true,
   };
@@ -165,25 +191,27 @@ function makePlayers(cfg) {
       id: i,
       name: 'Player ' + (i + 1),
       hand: [],
+      backpack: [],
+      bank: null,
       kept: [],
       fresh: [],
       played: 0,
       health: cfg.startHealth,
-      maxHealth: cfg.startHealth,
+      maxHealth: 10,
     });
   }
-  if (cfg.sharedHand) {
-    const shared = [];
-    for (const p of players) p.hand = shared;
-  }
+  const shared = [];
+  for (const p of players) p.hand = shared;
   return players;
 }
 
-// Every card currently held, counted once even when the hand is shared.
+// Bridge cards held in the shared hand, backpacks, or bank slots.
 function heldCards() {
-  if (state.cfg.sharedHand) return state.players[0].hand;
-  const all = [];
-  for (const p of state.players) all.push(...p.hand);
+  const all = state.players[0].hand.slice();
+  for (const p of state.players) {
+    if (p.bank) all.push(p.bank);
+    for (const card of p.backpack) if (card && card.deck !== 'Start') all.push(card);
+  }
   return all;
 }
 
@@ -197,13 +225,14 @@ function freshState(cfg, forecasting) {
   return {
     cfg,
     deck: [],
+    reserveDeck: [],
+    starterDeck: [],
+    activeDeck: 'A',
     discard: [],
     removed: [],
-    gods: [],
-    godDiscard: [],
     godFires: {},
     godsFired: 0,
-    godReshuffles: 0,
+    turnGods: [],
     players: makePlayers(cfg),
     active: 0,
     turn: 0,
@@ -226,17 +255,13 @@ function freshState(cfg, forecasting) {
     forecasting: !!forecasting,
     phase: 'play',
     selected: [],
-    pendingDiscard: 0,
     pendingTargets: 0,
-    turnPlayed: [],
     lastFresh: [],
   };
 }
 
 function setupText(cfg) {
-  return cfg.sharedHand
-    ? cfg.playerCount + ' players sharing one hand — press Start Game to deal ' + cfg.handSize + ' cards'
-    : cfg.playerCount + ' players — press Start Game to deal ' + cfg.handSize + ' cards each';
+  return cfg.playerCount + ' players — press Start Game to deal a shared four-card hand and four starting cards each';
 }
 
 // Pre-game: seats laid out and both decks intact, but nothing dealt yet.
@@ -245,8 +270,9 @@ function resetTable() {
 
   const cfg = readConfig();
   state = freshState(cfg);
-  state.deck = buildDeck(cfg);
-  state.gods = buildGods(cfg);
+  state.deck = buildDeck(cfg, 'A');
+  state.reserveDeck = buildDeck(cfg, 'B');
+  state.starterDeck = buildStarterDeck(cfg);
 
   addLog(null, [['note', 'Table set for ' + setupText(cfg)]]);
   updateForecast();
@@ -255,14 +281,14 @@ function resetTable() {
 
 function dealHands() {
   const cfg = state.cfg;
-  if (cfg.sharedHand) {
-    drawCards(state.players[0], cfg.handSize);
-  } else {
-    // Deal one card at a time around the table.
-    for (let c = 0; c < cfg.handSize; c++) {
-      for (const p of state.players) drawCards(p, 1);
+  // Deal the starting deck evenly around the table, then lay out the shared hand.
+  for (let c = 0; c < 4; c++) {
+    for (const p of state.players) {
+      const card = state.starterDeck.pop();
+      if (card) p.backpack.push(card);
     }
   }
+  drawCards(state.players[0], cfg.handSize);
   for (const p of state.players) p.fresh = [];
   state.lastFresh = [];
 }
@@ -271,24 +297,37 @@ function startGame() {
   stopAuto();
 
   const cfg = readConfig();
+  if (starterSize(cfg) < cfg.playerCount * 4) return;
   state = freshState(cfg);
-  state.deck = shuffle(buildDeck(cfg));
-  state.gods = shuffle(buildGods(cfg));
+  state.deck = shuffle(buildDeck(cfg, 'A'));
+  state.reserveDeck = shuffle(buildDeck(cfg, 'B'));
+  state.starterDeck = shuffle(buildStarterDeck(cfg));
   state.started = true;
   state.turn = 1;
 
   dealHands();
+  const openingGods = state.turnGods.slice();
+  const openingStrain = state.turnStrain.map(strainText);
+  const openingHits = state.turnHits.map(hitText);
+  state.turnGods = [];
+  state.turnHits = [];
+  state.turnStrain = [];
 
-  const dealt = cfg.sharedHand
-    ? cfg.playerCount + ' players sharing one hand of ' + cfg.handSize + ' cards'
-    : cfg.playerCount + ' players dealt ' + cfg.handSize + ' cards each';
+  const dealt = cfg.playerCount + ' players dealt up to four starting cards each; shared hand of ' +
+    state.players[0].hand.length + ' bridge cards';
   addLog(null, [['note', 'Game start — ' + dealt]]);
   addLog(null, [
     [
       'note',
-      deckSize(cfg) + '-card deck · ' + godDeckSize(cfg) + ' Acts of God · ' + godTimingText(cfg),
+      'Deck A: ' + deckSize(cfg, 'A') + ' cards · Deck B: ' + deckSize(cfg, 'B') + ' cards',
     ],
   ]);
+  if (openingGods.length) {
+    const parts = [['god', 'Opening draw triggered ' + names(openingGods)]];
+    for (const result of openingStrain) parts.push(['strain', result]);
+    if (openingHits.length) parts.push(['bridge', openingHits.join(', ')]);
+    addLog(null, parts);
+  }
 
   updateForecast();
   render();
@@ -334,10 +373,8 @@ function cutTarget() {
   return pick(alive);
 }
 
-// A sever takes the whole segment; the softer reading is a single point.
 function applyCut(index) {
-  const amount = state.cfg.cutSeverity === 'sever' ? state.bridge[index] : 1;
-  return damageSegment(index, 'Veridian Talon', amount);
+  return damageSegment(index, 'Veridian Talon', 1);
 }
 
 function resolveCuts(n) {
@@ -403,55 +440,34 @@ function moveHp(player) {
 
 /* ------------------------------- acts of god ------------------------------ */
 
-function godTimingText(cfg) {
-  return cfg.godEvery > 0
-    ? 'one drawn every ' + (cfg.godEvery === 1 ? 'turn' : cfg.godEvery + ' turns')
-    : 'never drawn';
-}
-
-function godDue() {
-  const every = state.cfg.godEvery;
-  return every > 0 && state.turn % every === 0;
-}
-
-function nextGodTurn() {
-  const every = state.cfg.godEvery;
-  if (every <= 0) return null;
-  const from = Math.max(state.turn, 1);
-  return from + ((every - (from % every)) % every);
-}
-
-function fireGod() {
-  if (state.broken) return null;
-  if (state.gods.length === 0) {
-    if (state.godDiscard.length === 0) return null;
-    state.gods = shuffle(state.godDiscard);
-    state.godDiscard = [];
-    state.godReshuffles++;
-  }
-
-  const card = state.gods.pop();
-  state.godDiscard.push(card);
-  state.godFires[card.name] = (state.godFires[card.name] || 0) + 1;
+function fireGod(card) {
+  state.discard.push(card);
+  const key = card.deck + ':' + card.name;
+  state.godFires[key] = (state.godFires[key] || 0) + 1;
   state.godsFired++;
+  state.turnGods.push(card);
 
   if (card.fx === 'weaken') damageSegment(randInt(0, SEGMENTS - 1), card.name, 1);
   if (card.fx === 'strain') runStrengthTest(card.name);
-  return card;
 }
 
 /* ---------------------------------- rules --------------------------------- */
 
 function drawCards(player, n) {
   const drawn = [];
-  const cap = deckSize(state.cfg) + 1;
+  const cap = totalDeckSize(state.cfg) + 1;
   let pulled = 0;
 
   while (drawn.length < n) {
     if (state.deck.length === 0) {
-      if (state.cfg.reshuffle && state.discard.length > 0) {
+      if (state.activeDeck === 'A') {
+        activateDeckB();
+        continue;
+      }
+      if (state.cfg.reshuffle && state.discard.some((card) => card.type !== 'god')) {
         state.deck = shuffle(state.discard);
         state.discard = [];
+        state.activeDeck = 'recycle';
         state.reshuffles++;
       } else {
         state.starved = true;
@@ -465,7 +481,14 @@ function drawCards(player, n) {
     }
 
     const card = state.deck.pop();
-    state.drawCounts[card.name] = (state.drawCounts[card.name] || 0) + 1;
+    if (state.activeDeck === 'A' && state.deck.length === 0) activateDeckB();
+    const key = card.deck + ':' + card.name;
+    state.drawCounts[key] = (state.drawCounts[key] || 0) + 1;
+    if (card.type === 'god') {
+      fireGod(card);
+      if (state.broken) break;
+      continue;
+    }
     player.hand.push(card);
     drawn.push(card);
   }
@@ -473,6 +496,13 @@ function drawCards(player, n) {
   player.fresh = drawn.map((c) => c.uid);
   state.lastFresh = player.fresh;
   return { drawn };
+}
+
+function activateDeckB() {
+  state.deck = state.reserveDeck;
+  state.reserveDeck = [];
+  state.activeDeck = 'B';
+  addLog(null, [['note', 'Deck A exhausted — Deck B is now in play']]);
 }
 
 function takeRandom(hand, n) {
@@ -494,11 +524,12 @@ function removeByUid(hand, uids) {
 
 function applyPlays(player, cards) {
   for (const card of cards) {
-    state.playCounts[card.name] = (state.playCounts[card.name] || 0) + 1;
+    const key = card.deck + ':' + card.name;
+    state.playCounts[key] = (state.playCounts[key] || 0) + 1;
 
     // Gifts from the Gods are permanent: they stay with the player, out of the cycle.
     if (card.type === 'gift') player.kept.push(card);
-    else if (state.cfg.playedDest === 'removed') state.removed.push(card);
+    else if (card.deck === 'Start' || state.cfg.playedDest === 'removed') state.removed.push(card);
     else state.discard.push(card);
 
     if (card.fx === 'heal') healPlayer(player);
@@ -522,7 +553,7 @@ function hitText(h) {
   return h.hp === 0 ? seg + ' SNAPPED' : seg + ' → ' + h.hp + ' hp';
 }
 
-function finishTurn(player, played, discarded) {
+function finishTurn(player, played, discarded, manualPass) {
   for (const card of discarded) state.discard.push(card);
   for (const p of state.players) p.fresh = [];
 
@@ -530,10 +561,10 @@ function finishTurn(player, played, discarded) {
   if (!state.broken) {
     drawn = drawCards(player, Math.max(0, state.cfg.handSize - player.hand.length)).drawn;
   }
-  const god = godDue() ? fireGod() : null;
-
   const parts = [];
-  parts.push(['play', played.length ? 'played ' + names(played) : 'played nothing']);
+  if (manualPass) parts.push(['note', state.broken ? 'turn ended as the bridge snapped' : 'passed turn']);
+  else if (played.length) parts.push(['play', 'played ' + names(played)]);
+  else parts.push(['play', 'played nothing']);
   const gifts = played.filter((c) => c.type === 'gift');
   if (gifts.length) parts.push(['keep', 'kept ' + names(gifts)]);
   if (state.turnHeal) {
@@ -542,7 +573,7 @@ function finishTurn(player, played, discarded) {
   for (const move of state.turnMoves) parts.push(['heal', 'moved ' + move]);
   if (discarded.length) parts.push(['discard', 'discarded ' + names(discarded)]);
   if (drawn.length) parts.push(['draw', 'drew ' + drawn.length]);
-  if (god) parts.push(['god', 'Act of God: ' + god.name]);
+  if (state.turnGods.length) parts.push(['god', 'Acts of God triggered: ' + names(state.turnGods)]);
   for (const s of state.turnStrain) parts.push(['strain', strainText(s)]);
   if (state.turnHits.length) parts.push(['bridge', state.turnHits.map(hitText).join(', ')]);
   if (!state.broken && player.hand.length < state.cfg.handSize) {
@@ -552,6 +583,7 @@ function finishTurn(player, played, discarded) {
 
   state.turnHits = [];
   state.turnStrain = [];
+  state.turnGods = [];
   state.turnMoves = [];
   state.turnHeal = 0;
   state.turnHealTo = 0;
@@ -559,9 +591,7 @@ function finishTurn(player, played, discarded) {
   state.active = (state.active + 1) % state.players.length;
   state.phase = 'play';
   state.selected = [];
-  state.pendingDiscard = 0;
   state.pendingTargets = 0;
-  state.turnPlayed = [];
   updateForecast();
   render();
 }
@@ -580,45 +610,101 @@ function takeTurn() {
   finishTurn(player, played, discarded);
 }
 
-// Once the plays are locked in, move to discarding (or straight to the draw).
-function afterPlays(player, played) {
-  const due = state.broken ? 0 : discardsDueAfter(player, played.length);
-  if (due === 0) {
-    finishTurn(player, played, []);
+// Manual actions leave the current player in control until they pass.
+function afterManualAction() {
+  state.selected = [];
+  if (state.broken) {
+    finishTurn(state.players[state.active], [], [], true);
     return;
   }
-  state.turnPlayed = played;
-  state.pendingDiscard = due;
-  state.phase = 'discard';
+  updateForecast();
   render();
 }
 
-// Manual mode: pick cards to play, aim any cuts, then pick the discards.
-function confirmSelection() {
+function playSelected() {
+  if (!isPicking() || state.phase !== 'play' || state.selected.length !== 1) return;
   const player = state.players[state.active];
-
-  if (state.phase === 'play') {
-    const played = removeByUid(player.hand, state.selected);
-    applyPlays(player, played);
-    state.selected = [];
-
-    const cuts = countCuts(played);
-    if (cuts > 0 && !state.broken) {
-      if (state.cfg.cutPolicy === 'pick') {
-        state.turnPlayed = played;
-        state.pendingTargets = cuts;
-        state.phase = 'target';
-        render();
-        return;
-      }
-      resolveCuts(cuts);
-    }
-    afterPlays(player, played);
+  if (isTreasure(player.hand.find((card) => card.uid === state.selected[0]))) return;
+  const card = removeByUid(player.hand, state.selected)[0];
+  if (!card) return;
+  applyPlays(player, [card]);
+  addLog(player, [['play', 'played ' + card.name]]);
+  state.selected = [];
+  const cuts = countCuts([card]);
+  if (cuts && state.cfg.cutPolicy === 'pick' && !state.broken) {
+    state.pendingTargets = cuts;
+    state.phase = 'target';
+    render();
     return;
   }
+  resolveCuts(cuts);
+  afterManualAction();
+}
 
-  const discarded = removeByUid(player.hand, state.selected);
-  finishTurn(player, state.turnPlayed, discarded);
+function discardSelected() {
+  if (!isPicking() || state.phase !== 'play' || state.selected.length !== 1) return;
+  const player = state.players[state.active];
+  const card = removeByUid(player.hand, state.selected)[0];
+  if (!card) return;
+  state.discard.push(card);
+  addLog(player, [['discard', 'discarded ' + card.name]]);
+  afterManualAction();
+}
+
+function passTurn() {
+  if (!isPicking() || state.phase !== 'play') return;
+  finishTurn(state.players[state.active], [], [], true);
+}
+
+function bankSelected() {
+  if (!isPicking() || state.phase !== 'play' || state.selected.length !== 1) return;
+  const player = state.players[state.active];
+  if (isTreasure(player.hand.find((card) => card.uid === state.selected[0]))) return;
+  const card = removeByUid(player.hand, state.selected)[0];
+  if (!card) return;
+  const old = player.bank;
+  if (old) state.removed.push(old);
+  player.bank = card;
+  addLog(player, [['keep', 'banked ' + card.name + (old ? '; sent ' + old.name + ' to the canyon' : '')]]);
+  afterManualAction();
+}
+
+function playBanked() {
+  if (!isPicking() || state.phase !== 'play') return;
+  const player = state.players[state.active];
+  if (!player.bank) return;
+  const card = player.bank;
+  player.bank = null;
+  playStoredCard(player, card);
+}
+
+function playStoredCard(player, card) {
+  state.selected = [];
+  applyPlays(player, [card]);
+  addLog(player, [['play', 'played banked ' + card.name]]);
+  const cuts = countCuts([card]);
+  if (cuts && !state.broken && state.cfg.cutPolicy === 'pick') {
+    state.pendingTargets = cuts;
+    state.phase = 'target';
+    render();
+    return;
+  }
+  resolveCuts(cuts);
+  afterManualAction();
+}
+
+function replaceBackpack(slot) {
+  if (!isPicking() || state.phase !== 'play' || state.selected.length !== 1 || slot < 0 || slot >= 4) return;
+  const player = state.players[state.active];
+  const chosen = player.hand.find((card) => card.uid === state.selected[0]);
+  if (!chosen || chosen.type !== 'item') return;
+  const card = removeByUid(player.hand, state.selected)[0];
+  const old = player.backpack[slot];
+  if (old) state.discard.push(old);
+  player.backpack[slot] = card;
+  addLog(player, [['keep', 'stored ' + card.name + ' in backpack slot ' + (slot + 1) +
+    (old ? '; discarded ' + old.name : '')]]);
+  afterManualAction();
 }
 
 // Manual mode: the player aims a Veridian Talon at a segment.
@@ -626,26 +712,19 @@ function chooseTarget(index) {
   if (!isPicking() || state.phase !== 'target') return;
   if (!applyCut(index)) return;
 
-  // The cut changes the odds, so refresh them before the board redraws.
-  updateForecast();
   state.pendingTargets--;
-  if (state.broken || state.pendingTargets === 0) {
-    afterPlays(state.players[state.active], state.turnPlayed);
+  if (state.broken) {
+    finishTurn(state.players[state.active], [], [], true);
     return;
   }
+  if (state.pendingTargets === 0) state.phase = 'play';
+  updateForecast();
   render();
 }
 
-function selectionCap() {
-  return state.phase === 'play'
-    ? Math.min(state.cfg.playMax, state.players[state.active].hand.length)
-    : state.pendingDiscard;
-}
-
 function toggleSelection(cardUid) {
-  const i = state.selected.indexOf(cardUid);
-  if (i >= 0) state.selected.splice(i, 1);
-  else if (state.selected.length < selectionCap()) state.selected.push(cardUid);
+  if (!isPicking() || state.phase !== 'play') return;
+  state.selected = state.selected[0] === cardUid ? [] : [cardUid];
   render();
 }
 
@@ -665,10 +744,11 @@ function addLog(player, parts) {
 function cloneState(s) {
   const c = freshState(Object.assign({}, s.cfg, { manual: false }), true);
   c.deck = s.deck.slice();
+  c.reserveDeck = s.reserveDeck.slice();
+  c.starterDeck = s.starterDeck.slice();
+  c.activeDeck = s.activeDeck;
   c.discard = s.discard.slice();
   c.removed = s.removed.slice();
-  c.gods = s.gods.slice();
-  c.godDiscard = s.godDiscard.slice();
   c.bridge = s.bridge.slice();
   c.active = s.active;
   c.turn = s.turn;
@@ -678,11 +758,13 @@ function cloneState(s) {
   c.starved = s.starved;
   c.started = s.started;
 
-  const shared = s.cfg.sharedHand ? s.players[0].hand.slice() : null;
+  const shared = s.players[0].hand.slice();
   c.players = s.players.map((p) => ({
     id: p.id,
     name: p.name,
-    hand: shared || p.hand.slice(),
+    hand: shared,
+    backpack: p.backpack.slice(),
+    bank: p.bank,
     kept: p.kept.slice(),
     fresh: [],
     played: p.played,
@@ -697,8 +779,9 @@ function trialState(real) {
   if (real.started) return cloneState(real);
 
   const s = freshState(Object.assign({}, real.cfg, { manual: false }), true);
-  s.deck = shuffle(buildDeck(s.cfg));
-  s.gods = shuffle(buildGods(s.cfg));
+  s.deck = shuffle(buildDeck(s.cfg, 'A'));
+  s.reserveDeck = shuffle(buildDeck(s.cfg, 'B'));
+  s.starterDeck = shuffle(buildStarterDeck(s.cfg));
   s.started = true;
   s.turn = 1;
 
@@ -712,6 +795,10 @@ function trialState(real) {
 // Play the position out many times to see when the bridge tends to go.
 function updateForecast() {
   if (!state || state.forecasting) return;
+  if (!state.started && starterSize(state.cfg) < state.cfg.playerCount * 4) {
+    state.forecast = null;
+    return;
+  }
   if (state.broken) {
     state.forecast = null;
     return;
@@ -768,6 +855,7 @@ function render() {
   renderLegend();
   renderBridge();
   renderDeckBuilder();
+  renderStarterBuilder();
   renderTurnBar();
   renderPlayers();
   renderLog();
@@ -778,21 +866,24 @@ function render() {
     document.getElementById(id).disabled = !auto;
   }
   document.getElementById('save-btn').disabled = !state.started;
+  document.getElementById('new-game').disabled = starterSize(state.cfg) < state.cfg.playerCount * 4;
   document.getElementById('new-game').textContent = state.started ? 'New Game' : 'Start Game';
-  document.getElementById('hand-size-label').textContent = state.cfg.sharedHand ? 'Shared hand size' : 'Hand size';
   document.getElementById('health-note').textContent =
     'Strength Test and Divine Thunderstorm each give every player a 50% chance to lose 1 (net 0.5). ' +
-    'Heal and Strength of the Jaguars restore 1, up to ' + state.cfg.startHealth + '.';
+    'Heal and Strength of the Jaguars restore 1, up to 10.';
   document.getElementById('bridge-note').textContent =
     SEGMENTS + ' segments × ' + state.cfg.segmentHp + ' hp — the bridge snaps when any one segment reaches 0.';
   document.getElementById('god-note').textContent =
-    godDeckSize(state.cfg) + ' Acts of God, ' + godTimingText(state.cfg) +
-    ' at the end of the turn. They are their own deck and never mix into the player deck.';
+    'Acts of God are shuffled into Deck A and Deck B. They trigger when drawn, go to discard, and are replaced in the hand.';
   document.getElementById('deck-note').textContent =
-    'Quantities are live: change any number and the table re-sets with the new deck, so the snap forecast ' +
-    'at the top of the page updates straight away.';
+    'Deck A draws first; Deck B takes over when A runs out. After B runs out, discarded cards reshuffle. ' +
+    'Changing a quantity resets the table and updates the snap forecast.';
+  document.getElementById('starter-note').textContent =
+    starterSize(state.cfg) < state.cfg.playerCount * 4
+      ? 'Add at least ' + (state.cfg.playerCount * 4 - starterSize(state.cfg)) + ' cards to deal four to every player.'
+      : 'Four random cards per player; unused starting cards stay in the starting deck.';
   document.getElementById('discard-note').textContent =
-    'Anything not played is discarded, so ' + state.cfg.playMax + ' cards leave the hand each turn.';
+    'Random mode only: up to ' + state.cfg.playMax + ' cards leave the shared hand each turn. In Manual mode, use Pass Turn to refill it.';
 }
 
 function renderLegend() {
@@ -800,11 +891,15 @@ function renderLegend() {
   for (const c of heldCards()) held[c.type] = (held[c.type] || 0) + 1;
   const kept = keptCards().length;
 
-  const totals = typeTotals(state.cfg);
+  const totals = {};
+  for (const deck of DECKS) {
+    const each = typeTotals(state.cfg, deck);
+    for (const key of Object.keys(each)) totals[key] = (totals[key] || 0) + each[key];
+  }
   const items = CATEGORIES.map((cat) => {
     const total = totals[cat.key] || 0;
     let counts;
-    if (cat.key === 'god') counts = total + ' total · ' + state.gods.length + ' left in the deck';
+    if (cat.key === 'god') counts = total + ' total · ' + state.godsFired + ' triggered';
     else if (cat.key === 'gift') {
       counts = total + ' total' + (state.started ? ' · ' + kept + ' kept' : '');
     } else {
@@ -821,44 +916,28 @@ function renderLegend() {
 
   document.getElementById('legend').innerHTML =
     items.join('') +
-    '<span class="legend-total">' + deckSize(state.cfg) + '-card deck · ' +
-    godDeckSize(state.cfg) + ' Acts of God</span>';
+    '<span class="legend-total">Deck A ' + deckSize(state.cfg, 'A') + ' · Deck B ' +
+    deckSize(state.cfg, 'B') + '</span>';
 }
 
 function renderStats() {
   const s = state;
-  const round = Math.floor((s.turn - 1) / s.players.length) + 1;
-  const nextGod = nextGodTurn();
   const tiles = [
-    { k: 'Turn', v: s.started ? s.turn : '—', sub: s.started ? 'round ' + round : 'not started' },
-    {
-      k: 'Active',
-      v: s.started ? s.players[s.active].name.replace('Player ', 'P') : '—',
-      sub: s.started ? 'to act' : 'awaiting deal',
-    },
-    { k: 'Deck', v: s.deck.length, sub: 'of ' + deckSize(s.cfg) },
-    { k: 'In hands', v: heldCards().length, sub: s.cfg.sharedHand ? 'shared hand' : s.players.length + ' players' },
-    { k: 'Discard', v: s.discard.length, sub: s.reshuffles + ' reshuffles' },
-    { k: 'Gifts kept', v: keptCards().length, sub: 'permanent' },
-    {
-      k: 'Acts of God',
-      v: s.godsFired,
-      sub: nextGod === null ? 'switched off' : s.started ? 'next on turn ' + nextGod : 'every ' + s.cfg.godEvery + ' turns',
-    },
-    {
-      k: 'Party',
-      v: partyHealth(),
-      sub: playersDown() ? playersDown() + ' down' : 'of ' + partyMax() + ' strength',
-    },
-    {
-      k: 'Bridge',
-      v: s.broken ? 'SNAP' : bridgeHp(),
-      sub: s.broken ? 'turn ' + s.brokenTurn : 'of ' + bridgeMax() + ' hp',
-    },
-    { k: 'Out of play', v: s.removed.length, sub: s.cfg.playedDest === 'removed' ? 'played cards' : 'none' },
+    { k: 'Turn', v: s.started ? s.turn : '—' },
+    { k: 'Active', v: s.started ? s.players[s.active].name.replace('Player ', 'P') : '—' },
+    { k: s.activeDeck === 'recycle' ? 'Recycled' : 'Deck ' + s.activeDeck, v: s.deck.length },
+    ...(s.activeDeck === 'A' ? [{ k: 'B reserve', v: s.reserveDeck.length }] : []),
+    { k: 'Middle hand', v: s.players[0].hand.length },
+    { k: 'Backpacks', v: s.players.reduce((n, p) => n + p.backpack.filter(Boolean).length, 0) },
+    { k: 'Banked', v: s.players.filter((p) => p.bank).length },
+    { k: 'Discard', v: s.discard.length },
+    { k: 'Canyon', v: s.removed.length },
+    { k: 'Acts', v: s.godsFired },
+    { k: 'Party', v: partyHealth(), sub: 'of ' + partyMax() },
   ];
   document.getElementById('stats').innerHTML = tiles
-    .map((t) => '<div class="stat"><div class="k">' + t.k + '</div><div class="v">' + esc(t.v) + '</div><div class="sub">' + esc(t.sub) + '</div></div>')
+    .map((t) => '<div class="stat"><span class="k">' + esc(t.k) + '</span><span class="v">' + esc(t.v) + '</span>' +
+      (t.sub ? '<span class="sub">' + esc(t.sub) + '</span>' : '') + '</div>')
     .join('');
 }
 
@@ -877,14 +956,18 @@ function healthHTML(p) {
 }
 
 function cardHTML(card, fresh, selectable) {
+  const glyph = { gift: '✦', item: '◆', action: '➤', god: '☄' }[card.type];
   const cls =
     (fresh ? ' fresh' : '') +
     (selectable ? ' selectable' : '') +
     (state.selected.includes(card.uid) ? ' selected' : '');
   const sub = card.effect && card.effect !== 'n/a' ? card.effect : TYPE_LABEL[card.type];
   return (
-    '<div class="card t-' + card.type + cls + '" data-uid="' + card.uid + '">' +
-    (fresh ? '<div class="card-tag">drawn</div>' : '') +
+    '<div class="card deck-' + card.deck.toLowerCase() + ' t-' + card.type + cls + '" data-uid="' + card.uid + '"' +
+    (selectable ? ' role="button" tabindex="0" aria-label="Select ' + esc(card.name) + '"' : '') + '>' +
+    '<div class="card-top"><span>' + esc(TYPE_LABEL[card.type]) + '</span><span class="card-mark">' +
+    (fresh ? '<span class="card-tag">drawn</span>' : '') + esc(card.deck) + '</span></div>' +
+    '<div class="card-glyph" aria-hidden="true">' + glyph + '</div>' +
     '<div class="cn">' + esc(card.name) + '</div>' +
     '<div class="ce">' + esc(sub) + '</div>' +
     '</div>'
@@ -905,38 +988,59 @@ function keptHTML(p) {
   return '<div class="kept"><span class="kept-label">Kept</span>' + chips + '</div>';
 }
 
-function playerPanelHTML(p) {
-  return (
-    '<div class="player' + (p.id === state.active && state.started ? ' active' : '') + '">' +
-    '<div class="player-head"><span class="player-name">' + esc(p.name) + '</span>' +
-    '<span class="player-meta">' + p.hand.length + ' cards · ' + p.played + ' played</span></div>' +
-    healthHTML(p) +
-    keptHTML(p) +
-    '<div class="hand">' + handHTML(p.hand, p.fresh, isPicking() && p.id === state.active) + '</div>' +
-    '</div>'
-  );
+function playerGodPoints(player) {
+  const held = [...player.backpack, player.bank, ...player.kept];
+  return held.reduce((total, card) => {
+    if (card && card.points) {
+      total.blue += card.points.blue || 0;
+      total.red += card.points.red || 0;
+    }
+    return total;
+  }, { blue: 0, red: 0 });
 }
 
 function sharedPanelHTML() {
   const cards = state.players[0].hand;
   const played = state.players.reduce((a, p) => a + p.played, 0);
+  const chosen = state.selected.length === 1
+    ? cards.find((card) => card.uid === state.selected[0]) : null;
   const seats = state.players
     .map(
-      (p) =>
-        '<span class="seat' + (p.id === state.active && state.started ? ' active' : '') + '">' +
-        '<span class="seat-top">' + esc(p.name) + '<em>' + p.played + ' played</em></span>' +
+      (p) => {
+        const points = playerGodPoints(p);
+        const canSwap = isPicking() && state.phase === 'play' && p.id === state.active && chosen && chosen.type === 'item';
+        const slots = Array.from({ length: 4 }, (_, i) => {
+          const card = p.backpack[i];
+          return '<div class="backpack-card' + (canSwap ? ' swappable' : '') + '" data-player="' + p.id + '" data-slot="' + i + '">' +
+            '<span class="backpack-slot">Slot ' + (i + 1) + '</span><strong>' + (card ? esc(card.name) : 'Empty') + '</strong>' +
+            (card ? '<small>' + esc(card.effect) + '</small>' : '') +
+            '<span class="backpack-actions">' +
+            (canSwap ? '<button class="swap-backpack" type="button" aria-label="Replace slot ' + (i + 1) + ' with ' + esc(chosen.name) + '">Swap</button>' : '') +
+            '</span></div>';
+        }).join('');
+        return '<div class="seat' + (p.id === state.active && state.started ? ' active' : '') + '">' +
+        '<span class="seat-top"><span class="seat-name">' + esc(p.name) + '</span>' +
+        '<span class="god-scores" aria-label="Blue ' + points.blue + ' points, red ' + points.red + ' points">' +
+        '<span class="god-score blue" title="Blue value">Blue <b>' + points.blue + '</b></span>' +
+        '<span class="god-score red" title="Red value">Red <b>' + points.red + '</b></span></span>' +
+        '<em>' + p.played + ' played</em></span>' +
         healthHTML(p) +
         keptHTML(p) +
-        '</span>',
+        '<div class="backpack-row">' + slots + '</div>' +
+        '<div class="bank-slot"><span>Bank slot</span><strong>' + (p.bank ? esc(p.bank.name) : 'Empty') + '</strong>' +
+        (p.bank && isPicking() && state.phase === 'play' && p.id === state.active
+          ? '<button class="play-banked" type="button">Play</button>' : '') + '</div>' +
+        '</div>';
+      },
     )
     .join('');
   return (
     '<div class="player' + (state.started ? ' active' : '') + '">' +
-    '<div class="player-head"><span class="player-name plain">Shared Hand</span>' +
+    '<div class="player-head"><span class="player-name plain">Shared Bridge Hand</span>' +
     '<span class="player-meta">' + cards.length + ' cards · ' + played + ' played this game</span></div>' +
-    '<div class="hand">' + handHTML(cards, state.lastFresh || [], isPicking()) + '</div>' +
+    '<div class="hand">' + handHTML(cards, state.lastFresh || [], isPicking() && state.phase === 'play') + '</div>' +
     '</div>' +
-    '<div class="panel"><h3>Turn Order</h3><div class="seat-row">' + seats + '</div></div>'
+    '<div class="panel"><h3>Player Backpacks &amp; Banks</h3><div class="seat-row">' + seats + '</div></div>'
   );
 }
 
@@ -958,7 +1062,8 @@ function renderBridge() {
           ? Math.round(risk[i] * 100) + '% to break here'
           : '&nbsp;';
       return (
-        '<div class="' + cls + '" data-seg="' + i + '">' +
+        '<div class="' + cls + '" data-seg="' + i + '" aria-label="Segment ' + (i + 1) + ': ' + hp + ' of ' + state.cfg.segmentHp + ' rope health"' +
+        (targeting && hp > 0 ? ' role="button" tabindex="0"' : '') + '>' +
         '<div class="seg-label">Seg ' + (i + 1) + '</div>' +
         '<div class="pips">' + pips + '</div>' +
         '<div class="seg-hp">' + hp + ' hp</div>' +
@@ -971,8 +1076,8 @@ function renderBridge() {
   document.getElementById('bridge').innerHTML =
     '<div class="bridge-head"><h3>The Bridge</h3>' +
     '<span class="bridge-hp">' + bridgeHp() + ' / ' + bridgeMax() + ' hp across ' + SEGMENTS + ' segments</span></div>' +
-    '<div class="bridge-row">' + segs + '</div>' +
-    forecastHTML();
+    '<div class="bridge-scene"><div class="bridge-row">' + segs + '</div></div>';
+  document.getElementById('forecast').innerHTML = forecastHTML();
 
   const banner = document.getElementById('broken-banner');
   if (state.broken) {
@@ -1040,51 +1145,35 @@ function renderTurnBar() {
   }
 
   const player = state.players[state.active];
-  const sel = state.selected.length;
-  let text, label, ready;
-
   if (state.phase === 'target') {
     const left = state.pendingTargets;
-    const verb = state.cfg.cutSeverity === 'sever' ? 'sever' : 'degrade';
     bar.className = 'panel turn-bar discarding';
     bar.innerHTML =
       '<span class="turn-bar-text">' +
-      esc(player.name + ' — Veridian Talon: pick a segment to ' + verb + (left > 1 ? ' (' + left + ' left)' : '')) +
+      esc(player.name + ' — Veridian Talon: pick a segment to degrade' + (left > 1 ? ' (' + left + ' left)' : '')) +
       '</span>';
     return;
   }
-
-  if (state.phase === 'play') {
-    const max = Math.min(state.cfg.playMax, player.hand.length);
-    const min = Math.min(state.cfg.playMin, max);
-    const range = min === max ? String(min) : min === 0 ? 'up to ' + max : min + '–' + max;
-    text = player.name + ' — select ' + range + ' card' + (max === 1 ? '' : 's') + ' to play';
-    ready = sel >= min && sel <= max;
-    label = 'Play ' + sel + ' card' + (sel === 1 ? '' : 's');
-  } else {
-    const need = state.pendingDiscard;
-    text = player.name + ' — select ' + need + ' card' + (need === 1 ? '' : 's') + ' to discard';
-    ready = sel === need;
-    label = 'Discard ' + sel + ' of ' + need;
-  }
-
-  const discarding = state.phase === 'discard';
-  bar.className = 'panel turn-bar' + (discarding ? ' discarding' : '');
+  const chosen = state.selected.length === 1
+    ? player.hand.find((card) => card.uid === state.selected[0]) : null;
+  const treasure = isTreasure(chosen);
+  bar.className = 'panel turn-bar';
   bar.innerHTML =
-    '<span class="turn-bar-text">' + esc(text) + '</span>' +
-    '<button id="confirm-selection" class="' + (discarding ? 'danger' : '') + '"' +
-    (ready ? '' : ' disabled') + '>' + esc(label) + '</button>';
+    '<span class="turn-bar-text">' + esc(player.name) + ' — select a shared card, then choose an action. Keep going until you pass.</span>' +
+    '<button id="play-selection"' + (chosen && !treasure ? '' : ' disabled') + '>Play</button>' +
+    '<button id="discard-selection" class="danger"' + (chosen ? '' : ' disabled') + '>Discard</button>' +
+    '<button id="bank-selection" class="secondary"' + (chosen && !treasure ? '' : ' disabled') + '>Bank</button>' +
+    '<button id="pass-turn" class="secondary">Pass Turn</button>' +
+    (treasure
+      ? '<span class="turn-hint">To keep this treasure, Swap it into a backpack slot. The replaced card goes to discard.</span>'
+      : chosen && chosen.type === 'item'
+        ? '<span class="turn-hint">You can also Swap this item into one of your backpack slots.</span>' : '');
 }
 
 function renderPlayers() {
   const view = document.getElementById('players-view');
-  const cls = ['players'];
-  if (state.cfg.sharedHand) cls.push('shared');
-  if (isPicking() && state.phase === 'discard') cls.push('discarding');
-  view.className = cls.join(' ');
-  view.innerHTML = state.cfg.sharedHand
-    ? sharedPanelHTML()
-    : state.players.map(playerPanelHTML).join('');
+  view.className = 'players shared';
+  view.innerHTML = sharedPanelHTML();
 }
 
 function renderLog() {
@@ -1103,54 +1192,55 @@ function renderLog() {
 let deckBuilderBuilt = false;
 
 function buildDeckBuilder() {
-  const blocks = CATEGORIES.map((cat) => {
-    const rows = CARD_DEFS.filter((d) => d.type === cat.key)
-      .map((d) => {
-        const note = d.effect && d.effect !== 'n/a'
-          ? '<em>' + esc(d.effect) + '</em>'
-          : '<em class="db-na">no simulated effect</em>';
-        return (
-          '<div class="db-row">' +
-          '<span class="db-name">' + esc(d.name) + note + '</span>' +
-          '<span class="db-step">' +
-          '<button class="db-btn" data-card="' + esc(d.name) + '" data-delta="-1" aria-label="one fewer ' + esc(d.name) + '">−</button>' +
-          '<input class="db-qty" type="number" min="0" max="' + MAX_QTY + '" step="1" ' +
-          'data-card="' + esc(d.name) + '" value="' + (deckQty[d.name] || 0) + '" />' +
-          '<button class="db-btn" data-card="' + esc(d.name) + '" data-delta="1" aria-label="one more ' + esc(d.name) + '">+</button>' +
-          '</span>' +
-          '</div>'
-        );
-      })
-      .join('');
+  for (const deck of DECKS) {
+    const blocks = CATEGORIES.map((cat) => {
+      const rows = CARD_DEFS.filter((d) => d.type === cat.key)
+        .map((d) => {
+          const note = d.effect && d.effect !== 'n/a'
+            ? '<em>' + esc(d.effect) + '</em>'
+            : '<em class="db-na">no simulated effect</em>';
+          return (
+            '<div class="db-row">' +
+            '<span class="db-name">' + esc(d.name) + note + '</span>' +
+            '<span class="db-step">' +
+            '<button class="db-btn" data-deck="' + deck + '" data-card="' + esc(d.name) + '" data-delta="-1" aria-label="one fewer ' + esc(d.name) + ' in Deck ' + deck + '">−</button>' +
+            '<input class="db-qty" type="number" min="0" max="' + MAX_QTY + '" step="1" ' +
+            'data-deck="' + deck + '" data-card="' + esc(d.name) + '" value="' + (deckQty[deck][d.name] || 0) + '" />' +
+            '<button class="db-btn" data-deck="' + deck + '" data-card="' + esc(d.name) + '" data-delta="1" aria-label="one more ' + esc(d.name) + ' in Deck ' + deck + '">+</button>' +
+            '</span>' +
+            '</div>'
+          );
+        })
+        .join('');
 
-    return (
-      '<div class="db-cat' + (cat.key === 'god' ? ' god' : '') + '">' +
-      '<div class="db-cat-head">' +
-      '<span class="swatch" style="background:' + cat.colour + '"></span>' +
-      '<span class="db-cat-label">' + esc(cat.label) + (cat.note ? ' <i>' + esc(cat.note) + '</i>' : '') + '</span>' +
-      '<span class="db-cat-total" data-cat="' + cat.key + '">0</span>' +
-      '</div>' + rows +
-      '</div>'
-    );
-  }).join('');
+      return (
+        '<div class="db-cat' + (cat.key === 'god' ? ' god' : '') + '">' +
+        '<div class="db-cat-head">' +
+        '<span class="swatch" style="background:' + cat.colour + '"></span>' +
+        '<span class="db-cat-label">' + esc(cat.label) + (cat.note ? ' <i>' + esc(cat.note) + '</i>' : '') + '</span>' +
+        '<span class="db-cat-total" data-deck="' + deck + '" data-cat="' + cat.key + '">0</span>' +
+        '</div>' + rows +
+        '</div>'
+      );
+    }).join('');
 
-  document.getElementById('deck-grid').innerHTML = blocks;
+    document.getElementById('deck-grid-' + deck.toLowerCase()).innerHTML = blocks;
+  }
 }
 
 function updateDeckBuilderValues() {
-  const totals = typeTotals(state.cfg);
-
-  for (const input of document.querySelectorAll('.db-qty')) {
-    const value = String(state.cfg.qty[input.dataset.card] || 0);
+  for (const input of document.querySelectorAll('#deck-builders .db-qty')) {
+    const value = String(state.cfg.qty[input.dataset.deck][input.dataset.card] || 0);
     // Leave the box alone while it is being typed into.
     if (document.activeElement !== input && input.value !== value) input.value = value;
   }
   for (const el of document.querySelectorAll('.db-cat-total')) {
-    el.textContent = (totals[el.dataset.cat] || 0) + ' cards';
+    el.textContent = (typeTotals(state.cfg, el.dataset.deck)[el.dataset.cat] || 0) + ' cards';
   }
-  document.getElementById('deck-total').textContent =
-    deckSize(state.cfg) + ' in the player deck · ' + godDeckSize(state.cfg) + ' Acts of God';
-  document.getElementById('deck-reset').disabled = isDefaultDeck();
+  for (const deck of DECKS) {
+    document.getElementById('deck-total-' + deck.toLowerCase()).textContent = deckSize(state.cfg, deck) + ' cards';
+    document.getElementById('deck-reset-' + deck.toLowerCase()).disabled = isDefaultDeck(deck);
+  }
 }
 
 function renderDeckBuilder() {
@@ -1161,14 +1251,41 @@ function renderDeckBuilder() {
   updateDeckBuilderValues();
 }
 
-function isDefaultDeck() {
-  return CARD_DEFS.every((d) => (deckQty[d.name] || 0) === DEFAULT_QTY[d.name]);
+function isDefaultDeck(deck) {
+  return CARD_DEFS.every((d) => (deckQty[deck][d.name] || 0) === DEFAULT_QTY[d.name]);
 }
 
-function setQty(name, value) {
+function setQty(deck, name, value) {
   const n = Math.max(0, Math.min(MAX_QTY, Math.round(Number(value) || 0)));
-  if (deckQty[name] === n) return false;
-  deckQty[name] = n;
+  if (deckQty[deck][name] === n) return false;
+  deckQty[deck][name] = n;
+  return true;
+}
+
+let starterBuilderBuilt = false;
+
+function renderStarterBuilder() {
+  if (!starterBuilderBuilt) {
+    document.getElementById('starter-grid').innerHTML = '<div class="db-cat">' + STARTER_DEFS.map((def) =>
+      '<div class="db-row"><span class="db-name">' + esc(def.name) + '<em>' + esc(def.effect) + '</em></span>' +
+      '<span class="db-step"><button class="db-btn" data-card="' + esc(def.name) + '" data-delta="-1" aria-label="one fewer ' + esc(def.name) + '">−</button>' +
+      '<input class="db-qty" type="number" min="0" max="' + MAX_QTY + '" step="1" data-card="' + esc(def.name) + '" value="' + starterQty[def.name] + '" />' +
+      '<button class="db-btn" data-card="' + esc(def.name) + '" data-delta="1" aria-label="one more ' + esc(def.name) + '">+</button></span></div>'
+    ).join('') + '</div>';
+    starterBuilderBuilt = true;
+  }
+  for (const input of document.querySelectorAll('#starter-grid .db-qty')) {
+    const value = String(starterQty[input.dataset.card] || 0);
+    if (document.activeElement !== input && input.value !== value) input.value = value;
+  }
+  document.getElementById('starter-total').textContent = starterSize(state.cfg) + ' cards';
+  document.getElementById('starter-reset').disabled = STARTER_DEFS.every((d) => starterQty[d.name] === DEFAULT_STARTER_QTY[d.name]);
+}
+
+function setStarterQty(name, value) {
+  const n = Math.max(0, Math.min(MAX_QTY, Math.round(Number(value) || 0)));
+  if (starterQty[name] === n) return false;
+  starterQty[name] = n;
   return true;
 }
 
@@ -1176,63 +1293,52 @@ function setQty(name, value) {
 
 function countBy(cards) {
   const out = {};
-  for (const c of cards) out[c.name] = (out[c.name] || 0) + 1;
+  for (const c of cards) {
+    const key = c.deck + ':' + c.name;
+    out[key] = (out[key] || 0) + 1;
+  }
   return out;
 }
 
 function renderTracker() {
   const inHand = countBy(heldCards());
   const inDeck = countBy(state.deck);
+  const inReserve = countBy(state.reserveDeck);
   const inDiscard = countBy(state.discard);
   const kept = countBy(keptCards());
   const out = countBy(state.removed);
   const cell = (n) => '<td class="num' + (n ? '' : ' zero') + '">' + n + '</td>';
 
-  const rows = mainDefs(state.cfg)
-    .filter((def) => def.qty > 0)
-    .map(
-      (def) =>
-        '<tr><td><span class="swatch" style="background:' + TYPE_COLOUR[def.type] + '"></span>' +
-        esc(def.name) + '</td>' +
-        '<td class="muted">' + esc(TYPE_LABEL[def.type]) + '</td>' +
-        cell(def.qty) +
-        cell(inDeck[def.name] || 0) +
-        cell(inHand[def.name] || 0) +
-        cell(inDiscard[def.name] || 0) +
-        cell(kept[def.name] || 0) +
-        cell(out[def.name] || 0) +
-        cell(state.playCounts[def.name] || 0) +
-        cell(state.drawCounts[def.name] || 0) +
-        '</tr>',
-    )
-    .join('');
+  for (const deck of DECKS) {
+    const rows = deckDefs(state.cfg, deck)
+      .filter((def) => def.qty > 0)
+      .map(
+        (def) => {
+          const key = deck + ':' + def.name;
+          return (
+            '<tr><td><span class="swatch" style="background:' + TYPE_COLOUR[def.type] + '"></span>' +
+            esc(def.name) + '</td>' +
+            '<td class="muted">' + esc(TYPE_LABEL[def.type]) + '</td>' +
+            cell(def.qty) +
+            cell((inDeck[key] || 0) + (inReserve[key] || 0)) +
+            cell(inHand[key] || 0) +
+            cell(inDiscard[key] || 0) +
+            cell(kept[key] || 0) +
+            cell(out[key] || 0) +
+            cell(state.playCounts[key] || 0) +
+            cell(state.godFires[key] || 0) +
+            cell(state.drawCounts[key] || 0) +
+            '</tr>'
+          );
+        },
+      )
+      .join('');
 
-  document.getElementById('tracker').innerHTML =
-    '<thead><tr><th>Card</th><th>Group</th><th class="num">Qty</th><th class="num">Deck</th>' +
-    '<th class="num">Hands</th><th class="num">Discard</th><th class="num">Kept</th><th class="num">Out</th>' +
-    '<th class="num">Played</th><th class="num">Drawn</th></tr></thead><tbody>' + rows + '</tbody>';
-
-  const godDeck = countBy(state.gods);
-  const godDisc = countBy(state.godDiscard);
-  const godRows = godDefs(state.cfg)
-    .filter((def) => def.qty > 0)
-    .map(
-      (def) =>
-        '<tr><td><span class="swatch" style="background:' + TYPE_COLOUR[def.type] + '"></span>' +
-        esc(def.name) + '</td>' +
-        '<td class="muted">' + esc(def.effect === 'n/a' ? 'no simulated effect' : def.effect) + '</td>' +
-        cell(def.qty) +
-        cell(godDeck[def.name] || 0) +
-        cell(godDisc[def.name] || 0) +
-        cell(state.godFires[def.name] || 0) +
-        '</tr>',
-    )
-    .join('');
-
-  document.getElementById('tracker-god').innerHTML =
-    '<thead><tr><th>Act of God</th><th>Effect</th><th class="num">Qty</th>' +
-    '<th class="num">Deck</th><th class="num">Discard</th><th class="num">Fired</th></tr></thead><tbody>' +
-    godRows + '</tbody>';
+    document.getElementById('tracker-' + deck.toLowerCase()).innerHTML =
+      '<thead><tr><th>Card</th><th>Group</th><th class="num">Qty</th><th class="num">Deck</th>' +
+      '<th class="num">Hands</th><th class="num">Discard</th><th class="num">Kept</th><th class="num">Out</th>' +
+      '<th class="num">Played</th><th class="num">Triggered</th><th class="num">Drawn</th></tr></thead><tbody>' + rows + '</tbody>';
+  }
 }
 
 /* ---------------------------------- controls ------------------------------- */
@@ -1272,10 +1378,9 @@ function bindSlider(id, format) {
   sync();
 }
 
-['players', 'hand-size', 'play-min', 'play-max', 'start-health', 'segment-hp'].forEach((id) =>
+['players', 'play-min', 'play-max', 'start-health', 'segment-hp'].forEach((id) =>
   bindSlider(id),
 );
-bindSlider('god-every', (v) => (Number(v) === 0 ? 'never' : Number(v) === 1 ? 'every turn' : v + ' turns'));
 bindSlider('speed', (v) => v + 'ms');
 
 // Keep the play min/max sliders from crossing over.
@@ -1297,17 +1402,37 @@ document.getElementById('play-max').addEventListener('input', () => {
 });
 
 document.getElementById('players-view').addEventListener('click', (e) => {
+  if (e.target.closest('.play-banked')) { playBanked(); return; }
+  const slot = e.target.closest('.swap-backpack')?.closest('.backpack-card');
+  if (slot) { replaceBackpack(Number(slot.dataset.slot)); return; }
   const el = e.target.closest('.card.selectable');
   if (el) toggleSelection(Number(el.dataset.uid));
+});
+document.getElementById('players-view').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target.closest('.card.selectable');
+  if (!el) return;
+  e.preventDefault();
+  toggleSelection(Number(el.dataset.uid));
 });
 
 document.getElementById('bridge').addEventListener('click', (e) => {
   const el = e.target.closest('.seg.targetable');
   if (el) chooseTarget(Number(el.dataset.seg));
 });
+document.getElementById('bridge').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target.closest('.seg.targetable');
+  if (!el) return;
+  e.preventDefault();
+  chooseTarget(Number(el.dataset.seg));
+});
 
 document.getElementById('turn-bar').addEventListener('click', (e) => {
-  if (e.target.id === 'confirm-selection') confirmSelection();
+  if (e.target.id === 'play-selection') playSelected();
+  if (e.target.id === 'discard-selection') discardSelected();
+  if (e.target.id === 'bank-selection') bankSelected();
+  if (e.target.id === 'pass-turn') passTurn();
 });
 
 // Re-deal on a short delay so holding down a stepper does not re-run the
@@ -1322,22 +1447,49 @@ function deckChanged() {
   }, 140);
 }
 
-document.getElementById('deck-grid').addEventListener('click', (e) => {
+document.getElementById('deck-builders').addEventListener('click', (e) => {
   const btn = e.target.closest('.db-btn');
   if (!btn) return;
+  const deck = btn.dataset.deck;
   const name = btn.dataset.card;
-  if (setQty(name, (deckQty[name] || 0) + Number(btn.dataset.delta))) {
-    state.cfg.qty = Object.assign({}, deckQty);
+  if (setQty(deck, name, (deckQty[deck][name] || 0) + Number(btn.dataset.delta))) {
+    state.cfg.qty = { A: Object.assign({}, deckQty.A), B: Object.assign({}, deckQty.B) };
     deckChanged();
   }
 });
 
-document.getElementById('deck-grid').addEventListener('change', (e) => {
+document.getElementById('deck-builders').addEventListener('change', (e) => {
   const input = e.target.closest('.db-qty');
   if (!input) return;
-  setQty(input.dataset.card, input.value);
-  input.value = String(deckQty[input.dataset.card]);
-  state.cfg.qty = Object.assign({}, deckQty);
+  setQty(input.dataset.deck, input.dataset.card, input.value);
+  input.value = String(deckQty[input.dataset.deck][input.dataset.card]);
+  state.cfg.qty = { A: Object.assign({}, deckQty.A), B: Object.assign({}, deckQty.B) };
+  deckChanged();
+});
+
+document.getElementById('starter-grid').addEventListener('click', (e) => {
+  const btn = e.target.closest('.db-btn');
+  if (!btn) return;
+  if (setStarterQty(btn.dataset.card, (starterQty[btn.dataset.card] || 0) + Number(btn.dataset.delta))) {
+    state.cfg.starterQty = Object.assign({}, starterQty);
+    renderStarterBuilder();
+    deckChanged();
+  }
+});
+document.getElementById('starter-grid').addEventListener('change', (e) => {
+  const input = e.target.closest('.db-qty');
+  if (!input) return;
+  setStarterQty(input.dataset.card, input.value);
+  input.value = String(starterQty[input.dataset.card]);
+  state.cfg.starterQty = Object.assign({}, starterQty);
+  renderStarterBuilder();
+  deckChanged();
+});
+document.getElementById('starter-reset').addEventListener('click', (e) => {
+  e.preventDefault();
+  starterQty = Object.assign({}, DEFAULT_STARTER_QTY);
+  state.cfg.starterQty = Object.assign({}, starterQty);
+  renderStarterBuilder();
   deckChanged();
 });
 
@@ -1352,11 +1504,14 @@ document.getElementById('tracker-tabs').addEventListener('click', (e) => {
   }
 });
 
-document.getElementById('deck-reset').addEventListener('click', () => {
-  deckQty = Object.assign({}, DEFAULT_QTY);
-  state.cfg.qty = Object.assign({}, deckQty);
-  deckChanged();
-});
+for (const deck of DECKS) {
+  document.getElementById('deck-reset-' + deck.toLowerCase()).addEventListener('click', (e) => {
+    e.preventDefault();
+    deckQty[deck] = Object.assign({}, DEFAULT_QTY);
+    state.cfg.qty = { A: Object.assign({}, deckQty.A), B: Object.assign({}, deckQty.B) };
+    deckChanged();
+  });
+}
 
 document.getElementById('new-game').addEventListener('click', startGame);
 document.getElementById('next-turn').addEventListener('click', () => {
@@ -1380,20 +1535,22 @@ document.getElementById('speed').addEventListener('change', () => {
 });
 
 // Changing table setup returns to an undealt table; turn rules apply from the next turn.
-['players', 'hand-size', 'hand-mode', 'start-health', 'segment-hp', 'god-every'].forEach((id) =>
+['players', 'start-health', 'segment-hp'].forEach((id) =>
   document.getElementById(id).addEventListener('change', resetTable),
 );
-['play-min', 'play-max', 'played-dest', 'turn-mode', 'cut-policy', 'cut-severity'].forEach((id) =>
+['play-min', 'play-max', 'played-dest', 'turn-mode', 'cut-policy'].forEach((id) =>
   document.getElementById(id).addEventListener('change', () => {
     if (!state) return;
     state.cfg = readConfig();
     if (state.cfg.manual) stopAuto();
-    if (state.started && state.phase === 'discard') {
-      // Settle the pending discard at random rather than stranding the turn.
-      const player = state.players[state.active];
-      const discarded = takeRandom(player.hand, Math.min(state.pendingDiscard, player.hand.length));
-      finishTurn(player, state.turnPlayed, discarded);
-      return;
+    if (state.started && state.phase === 'target' && !state.cfg.manual) {
+      resolveCuts(state.pendingTargets);
+      state.pendingTargets = 0;
+      state.phase = 'play';
+      if (state.broken) {
+        finishTurn(state.players[state.active], [], [], true);
+        return;
+      }
     }
     state.selected = [];
     updateForecast();
