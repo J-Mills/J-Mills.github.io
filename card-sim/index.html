@@ -1494,6 +1494,10 @@
       </div>
     </div>
 
-    <script src="cards.js"></script>
+    <script>
+      const simulatorScript = document.createElement('script');
+      simulatorScript.src = 'cards.js?v=' + Date.now();
+      document.body.appendChild(simulatorScript);
+    </script>
   </body>
 </html>
