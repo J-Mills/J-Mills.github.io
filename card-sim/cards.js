@@ -40,10 +40,12 @@ const CARD_DEFS = [
   { name: 'Echo Conch', type: 'item', qty: 1, effect: 'n/a' },
   { name: 'Cinnabar Dust', type: 'item', qty: 1, effect: 'n/a' },
   { name: 'Blood Jade Scarab', type: 'item', qty: 1, effect: 'Moves 1 HP from a random player to the current player', fx: 'move-hp' },
-  treasureDef('Quartz Gold', 2, 0),
-  treasureDef('Glacial Gold', 3, 0),
-  treasureDef('Brimstone Gold', 0, 2),
-  treasureDef('Igneous Gold', 0, 3),
+  treasureDef('Quartz Gold', 2, 1),
+  treasureDef('Glacial Gold', 3, 1),
+  treasureDef('Small Blue', 1, 0),
+  treasureDef('Brimstone Gold', 1, 2),
+  treasureDef('Igneous Gold', 1, 3),
+  treasureDef('Small Red', 0, 1),
   treasureDef('Neutral Gold', 2, 2),
   treasureDef('Small Gold', 1, 1),
   treasureDef('Statue of Xal Tok', 0, 2),
@@ -176,6 +178,7 @@ function readConfig() {
   return {
     playerCount: Number(document.getElementById('players').value),
     manual: document.getElementById('turn-mode').value === 'manual',
+    godAutoDiscard: document.getElementById('god-auto-discard').checked,
     cutPolicy: document.getElementById('cut-policy').value,
     handSize: 4,
     playMin: Math.min(playMin, playMax),
@@ -239,6 +242,7 @@ function freshState(cfg, forecasting) {
     godFires: {},
     godsFired: 0,
     turnGods: [],
+    pendingGod: null,
     players: makePlayers(cfg),
     active: 0,
     turn: 0,
@@ -296,7 +300,7 @@ function dealHands() {
   }
   drawCards(state.players[0], cfg.handSize);
   for (const p of state.players) p.fresh = [];
-  state.lastFresh = [];
+  state.lastFresh = state.pendingGod ? [state.pendingGod.uid] : [];
 }
 
 function startGame() {
@@ -439,20 +443,45 @@ function moveHp(player) {
 /* ------------------------------- acts of god ------------------------------ */
 
 function fireGod(card) {
-  state.discard.push(card);
   const key = card.deck + ':' + card.name;
   state.godFires[key] = (state.godFires[key] || 0) + 1;
   state.godsFired++;
   state.turnGods.push(card);
 
-  if (card.fx === 'weaken') damageSegment(randInt(0, SEGMENTS - 1), card.name, 1);
-  if (card.fx === 'strain') runStrengthTest(card.name);
+  let outcome = 'No simulated effect has been set for this card yet.';
+  if (card.fx === 'weaken') {
+    const hit = damageSegment(randInt(0, SEGMENTS - 1), card.name, 1);
+    outcome = hit ? 'Bridge ' + hitText(hit) : 'The bridge was already broken.';
+  }
+  if (card.fx === 'strain') {
+    runStrengthTest(card.name);
+    outcome = strainText(state.turnStrain[state.turnStrain.length - 1]);
+  }
+  return outcome;
+}
+
+function resolvePendingGod() {
+  if (!state || !state.pendingGod) return;
+  const player = state.players[0];
+  const card = removeByUid(player.hand, [state.pendingGod.uid])[0];
+  if (!card) return;
+  state.pendingGod = null;
+  state.discard.push(card);
+
+  const drawn = state.broken ? [] : drawCards(player, Math.max(0, state.cfg.handSize - player.hand.length)).drawn;
+  if (state.forecasting) return;
+  const parts = [['discard', 'sent ' + card.name + ' to discard']];
+  if (drawn.length) parts.push(['draw', 'drew ' + names(drawn)]);
+  addLog(state.players[state.active], parts);
+  updateForecast();
+  render();
 }
 
 /* ---------------------------------- rules --------------------------------- */
 
 function drawCards(player, n) {
   const drawn = [];
+  if (state.pendingGod) return { drawn };
   const cap = totalDeckSize(state.cfg) + 1;
   let pulled = 0;
 
@@ -483,9 +512,16 @@ function drawCards(player, n) {
     const key = card.deck + ':' + card.name;
     state.drawCounts[key] = (state.drawCounts[key] || 0) + 1;
     if (card.type === 'god') {
-      fireGod(card);
-      if (state.broken) break;
-      continue;
+      const outcome = fireGod(card);
+      if (state.forecasting || state.cfg.godAutoDiscard) {
+        state.discard.push(card);
+        if (state.broken) break;
+        continue;
+      }
+      player.hand.push(card);
+      drawn.push(card);
+      state.pendingGod = { uid: card.uid, outcome };
+      break;
     }
     player.hand.push(card);
     drawn.push(card);
@@ -574,7 +610,7 @@ function finishTurn(player, played, discarded, manualPass) {
   if (state.turnGods.length) parts.push(['god', 'Acts of God triggered: ' + names(state.turnGods)]);
   for (const s of state.turnStrain) parts.push(['strain', strainText(s)]);
   if (state.turnHits.length) parts.push(['bridge', state.turnHits.map(hitText).join(', ')]);
-  if (!state.broken && player.hand.length < state.cfg.handSize) {
+  if (!state.broken && !state.pendingGod && player.hand.length < state.cfg.handSize) {
     parts.push(['note', 'could not refill (deck exhausted)']);
   }
   addLog(player, parts);
@@ -596,6 +632,11 @@ function finishTurn(player, played, discarded, manualPass) {
 
 function takeTurn() {
   if (!state || !state.started || state.cfg.manual || state.broken) return;
+  if (state.pendingGod) {
+    if (!state.forecasting) return;
+    resolvePendingGod();
+    if (state.pendingGod || state.broken) return;
+  }
   const cfg = state.cfg;
   const player = state.players[state.active];
 
@@ -754,6 +795,7 @@ function cloneState(s) {
   c.brokenSegment = s.brokenSegment;
   c.starved = s.starved;
   c.started = s.started;
+  c.pendingGod = s.pendingGod ? Object.assign({}, s.pendingGod) : null;
 
   const shared = s.players[0].hand.slice();
   c.players = s.players.map((p) => ({
@@ -856,12 +898,12 @@ function render() {
   renderTurnBar();
   renderPlayers();
   renderLog();
+  renderDiscard();
   renderTracker();
 
   const auto = state.started && !state.cfg.manual && !state.broken;
-  for (const id of ['next-turn', 'auto', 'skip']) {
-    document.getElementById(id).disabled = !auto;
-  }
+  document.getElementById('auto').disabled = !auto;
+  for (const id of ['next-turn', 'skip']) document.getElementById(id).disabled = !auto || !!state.pendingGod;
   document.getElementById('save-btn').disabled = !state.started;
   document.getElementById('new-game').disabled = starterSize(state.cfg) < state.cfg.playerCount * 4;
   document.getElementById('new-game').textContent = state.started ? 'New Game' : 'Start Game';
@@ -870,7 +912,7 @@ function render() {
   document.getElementById('bridge-note').textContent =
     SEGMENTS + ' segments × ' + state.cfg.segmentHp + ' hp — the bridge snaps when any one segment reaches 0.';
   document.getElementById('god-note').textContent =
-    'Acts of God are shuffled into Deck A and Deck B. They trigger when drawn, go to discard, and are replaced in the hand.';
+    'Acts take effect when drawn. With auto discard off, use the orange card in the shared hand to discard it and draw a replacement.';
   document.getElementById('deck-note').textContent =
     'Deck A draws first; Deck B takes over when A runs out. After B runs out, discarded cards reshuffle. ' +
     'Changing a quantity resets the table and updates the snap forecast.';
@@ -972,7 +1014,9 @@ function healthHTML(p) {
 
 function cardHTML(card, fresh, selectable) {
   const glyph = { gift: '✦', item: '◆', action: '➤', god: '☄' }[card.type];
-  const cls = (fresh ? ' fresh' : '') + (selectable ? ' selectable' : '') + (state.selected.includes(card.uid) ? ' selected' : '');
+  const canSelect = selectable && card.type !== 'god';
+  const pendingGod = state.pendingGod && state.pendingGod.uid === card.uid;
+  const cls = (fresh ? ' fresh' : '') + (canSelect ? ' selectable' : '') + (state.selected.includes(card.uid) ? ' selected' : '');
   const sub = card.effect && card.effect !== 'n/a' ? card.effect : TYPE_LABEL[card.type];
   return (
     '<div class="card deck-' +
@@ -983,7 +1027,7 @@ function cardHTML(card, fresh, selectable) {
     '" data-uid="' +
     card.uid +
     '"' +
-    (selectable ? ' role="button" tabindex="0" aria-label="Select ' + esc(card.name) + '"' : '') +
+    (canSelect ? ' role="button" tabindex="0" aria-label="Select ' + esc(card.name) + '"' : '') +
     '>' +
     '<div class="card-top"><span>' +
     esc(TYPE_LABEL[card.type]) +
@@ -1000,6 +1044,14 @@ function cardHTML(card, fresh, selectable) {
     '<div class="ce">' +
     esc(sub) +
     '</div>' +
+    (pendingGod
+      ? '<div class="god-result">Effect: ' +
+        esc(state.pendingGod.outcome) +
+        '</div>' +
+        '<button class="resolve-god" type="button">' +
+        (state.broken ? 'Discard' : 'Resolve, discard + draw new') +
+        '</button>'
+      : '') +
     '</div>'
   );
 }
@@ -1252,11 +1304,16 @@ function forecastHTML() {
 }
 
 function isPicking() {
-  return state.started && state.cfg.manual && !state.broken;
+  return state.started && state.cfg.manual && !state.broken && !state.pendingGod;
 }
 
 function renderTurnBar() {
   const bar = document.getElementById('turn-bar');
+  if (state.started && state.cfg.manual && state.pendingGod && !state.broken) {
+    bar.className = 'panel turn-bar discarding';
+    bar.innerHTML = '<span class="turn-bar-text">Resolve the Act of God in the shared hand before continuing.</span>';
+    return;
+  }
   if (!isPicking()) {
     bar.className = '';
     bar.innerHTML = '';
@@ -1310,6 +1367,32 @@ function renderLog() {
       return '<div class="log-entry"><span class="log-turn">' + turn + '</span>' + who + body + '</div>';
     })
     .join('');
+}
+
+function renderDiscard() {
+  const cards = state.discard;
+  document.getElementById('discard-count').textContent = cards.length;
+  const view = document.getElementById('discard-view');
+  if (!cards.length) {
+    view.innerHTML = '<p class="discard-empty">The discard pile is empty.</p>';
+    return;
+  }
+
+  const groups = new Map();
+  for (const card of cards.slice().reverse()) {
+    const key = card.deck + ':' + card.name;
+    if (!groups.has(key)) groups.set(key, { card, count: 0 });
+    groups.get(key).count++;
+  }
+  view.innerHTML =
+    '<p class="discard-summary">' +
+    cards.length +
+    ' cards in the pile · most recently discarded types first</p>' +
+    '<div class="discard-grid">' +
+    [...groups.values()]
+      .map(({ card, count }) => '<div class="discard-card">' + cardHTML(card, false, false) + '<span class="discard-qty">' + count + ' in discard</span></div>')
+      .join('') +
+    '</div>';
 }
 
 /* ------------------------------ deck builder ------------------------------ */
@@ -1589,6 +1672,10 @@ document.getElementById('play-max').addEventListener('input', () => {
 });
 
 document.getElementById('players-view').addEventListener('click', (e) => {
+  if (e.target.closest('.resolve-god')) {
+    resolvePendingGod();
+    return;
+  }
   if (e.target.closest('.play-banked')) {
     playBanked();
     return;
@@ -1692,7 +1779,20 @@ document.getElementById('tracker-tabs').addEventListener('click', (e) => {
   for (const t of document.querySelectorAll('#tracker-tabs .tab')) {
     t.classList.toggle('active', t === tab);
   }
-  for (const pane of document.querySelectorAll('.tab-pane')) {
+  for (const pane of document.querySelectorAll('#deck-tracker-panel .tab-pane')) {
+    pane.classList.toggle('hidden', pane.id !== tab.dataset.pane);
+  }
+});
+
+document.getElementById('history-tabs').addEventListener('click', (e) => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  for (const t of document.querySelectorAll('#history-tabs .tab')) {
+    const active = t === tab;
+    t.classList.toggle('active', active);
+    t.setAttribute('aria-selected', String(active));
+  }
+  for (const pane of document.querySelectorAll('#history-panel .tab-pane')) {
     pane.classList.toggle('hidden', pane.id !== tab.dataset.pane);
   }
 });
@@ -1729,11 +1829,15 @@ document.getElementById('speed').addEventListener('change', () => {
 
 // Changing table setup returns to an undealt table; turn rules apply from the next turn.
 ['players', 'start-health', 'segment-hp'].forEach((id) => document.getElementById(id).addEventListener('change', resetTable));
-['play-min', 'play-max', 'played-dest', 'turn-mode', 'cut-policy'].forEach((id) =>
+['play-min', 'play-max', 'played-dest', 'turn-mode', 'cut-policy', 'god-auto-discard'].forEach((id) =>
   document.getElementById(id).addEventListener('change', () => {
     if (!state) return;
     state.cfg = readConfig();
     if (state.cfg.manual) stopAuto();
+    if (state.cfg.godAutoDiscard && state.pendingGod) {
+      resolvePendingGod();
+      return;
+    }
     if (state.started && state.phase === 'target' && !state.cfg.manual) {
       resolveCuts(state.pendingTargets);
       state.pendingTargets = 0;
