@@ -64,7 +64,9 @@ const CARD_DEFS = [
   { name: 'Brace', type: 'action', qty: 1, effect: 'n/a' },
   { name: 'Run', type: 'action', qty: 5, effect: 'n/a' },
 
-  { name: 'Bridge Weakens', type: 'god', qty: 6, effect: 'Degrades 1 rope segment by 1', fx: 'weaken' },
+  { name: 'Wrath of the Maw', type: 'god', qty: 0, effect: 'A random bridge segment loses 1 HP', fx: 'weaken' },
+  { name: "Xal Tok's Rage", type: 'god', qty: 0, effect: 'A random bridge segment 4–6 loses 1 HP', fx: 'weaken-second-half' },
+  { name: "h'mraa's Rage also", type: 'god', qty: 0, effect: 'A random bridge segment 1–3 loses 1 HP', fx: 'weaken-first-half' },
   { name: 'Strength Test', type: 'god', qty: 3, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
   { name: 'Divine Thunderstorm', type: 'god', qty: 1, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
   { name: 'Mischief Monkey', type: 'god', qty: 1, effect: 'n/a' },
@@ -83,32 +85,70 @@ for (const c of CATEGORIES) {
 const MAX_QTY = 40;
 const DECKS = ['A', 'B'];
 // Used only to migrate browser saves made before the decks had separate defaults.
-const LEGACY_DEFAULT_QTY = Object.fromEntries(CARD_DEFS.map((d) => [d.name, d.qty]));
+const LEGACY_DEFAULT_QTY = Object.assign(Object.fromEntries(CARD_DEFS.map((d) => [d.name, d.qty])), { 'Bridge Weakens': 6 });
 function deckQuantities(included) {
   return Object.assign(Object.fromEntries(CARD_DEFS.map((d) => [d.name, 0])), included);
 }
 const DEFAULT_QTY = {
   A: deckQuantities({
-    'Bridge Weakens': 3, 'Strength Test': 2, 'Divine Thunderstorm': 1,
-    'The Call of Xal Tok': 1, "The Call of H'mraa": 1,
-    'Pickaxe': 1, 'Climbing Equipment': 1,
-    'Veridian Talon': 1, 'Lasso': 1, 'Wind Fan': 1, 'Hissing Hourglass': 1,
-    'Hooky Stick': 1, 'Cinnabar Dust': 1, 'Blood Jade Scarab': 1,
-    'Quartz Gold': 1, 'Glacial Gold': 1, 'Brimstone Gold': 1, 'Igneous Gold': 1,
-    'Neutral Gold': 4, 'Heart of Xal Tok': 1, "Breath of H'mraa": 1,
-    'Heal': 2, 'Strength of the Jaguars': 1, 'Rucksack Check': 2,
-    'Steal': 4, 'Defend': 1, 'Brace': 1, 'Run': 2,
+    'Strength Test': 2,
+    'Divine Thunderstorm': 1,
+    "h'mraa's Rage also": 2,
+    "Xal Tok's Rage": 2,
+    'The Call of Xal Tok': 1,
+    "The Call of H'mraa": 1,
+    Pickaxe: 1,
+    'Climbing Equipment': 1,
+    'Veridian Talon': 1,
+    Lasso: 1,
+    'Wind Fan': 1,
+    'Hissing Hourglass': 1,
+    'Hooky Stick': 1,
+    'Cinnabar Dust': 1,
+    'Blood Jade Scarab': 1,
+    'Quartz Gold': 1,
+    'Glacial Gold': 1,
+    'Brimstone Gold': 1,
+    'Igneous Gold': 1,
+    'Neutral Gold': 4,
+    'Heart of Xal Tok': 1,
+    "Breath of H'mraa": 1,
+    Heal: 2,
+    'Strength of the Jaguars': 1,
+    'Rucksack Check': 2,
+    Steal: 4,
+    Defend: 1,
+    Brace: 1,
+    Run: 2,
   }),
   B: deckQuantities({
-    'Bridge Weakens': 3, 'Strength Test': 2, 'Divine Thunderstorm': 1,
-    'Mischief Monkey': 1, 'Termites': 1,
-    'Bristol Gold': 1, 'Grappling Hook': 1,
-    'Veridian Talon': 1, 'Lasso': 1, 'Wind Fan': 1, 'Hissing Hourglass': 1,
-    'Horn of the Ancients': 1, 'Chant of Solitude': 1, 'Hooky Stick': 1,
-    'Echo Conch': 1, 'Cinnabar Dust': 1, 'Blood Jade Scarab': 1,
-    'Statue of Xal Tok': 1, "Statue of H'mraa": 1, 'Gold Sarcophagus': 1,
-    'Heal': 2, 'Strength of the Jaguars': 1, 'Rucksack Check': 3,
-    'Steal': 6, 'Defend': 1, 'Brace': 1, 'Run': 3,
+    'Wrath of the Maw': 3,
+    'Strength Test': 2,
+    'Divine Thunderstorm': 1,
+    'Mischief Monkey': 1,
+    Termites: 1,
+    'Bristol Gold': 1,
+    'Grappling Hook': 1,
+    'Veridian Talon': 1,
+    Lasso: 1,
+    'Wind Fan': 1,
+    'Hissing Hourglass': 1,
+    'Horn of the Ancients': 1,
+    'Chant of Solitude': 1,
+    'Hooky Stick': 1,
+    'Echo Conch': 1,
+    'Cinnabar Dust': 1,
+    'Blood Jade Scarab': 1,
+    'Statue of Xal Tok': 1,
+    "Statue of H'mraa": 1,
+    'Gold Sarcophagus': 1,
+    Heal: 2,
+    'Strength of the Jaguars': 1,
+    'Rucksack Check': 3,
+    Steal: 6,
+    Defend: 1,
+    Brace: 1,
+    Run: 3,
   }),
 };
 let deckQty = { A: Object.assign({}, DEFAULT_QTY.A), B: Object.assign({}, DEFAULT_QTY.B) };
@@ -135,9 +175,27 @@ function savedQuantities(saved, defaults) {
 }
 
 function quantityOverrides(quantities, defaults) {
-  return Object.fromEntries(Object.keys(defaults)
-    .filter((name) => quantities[name] !== defaults[name])
-    .map((name) => [name, quantities[name]]));
+  return Object.fromEntries(
+    Object.keys(defaults)
+      .filter((name) => quantities[name] !== defaults[name])
+      .map((name) => [name, quantities[name]]),
+  );
+}
+
+function renamedGodQuantities(quantities) {
+  if (!quantities || typeof quantities !== 'object' || Array.isArray(quantities)) return quantities;
+  const renamed = Object.assign({}, quantities);
+  for (const [oldName, newName] of [
+    ['Rage of the Maw', 'Wrath of the Maw'],
+    ['Bridge Weakens', 'Wrath of the Maw'],
+    ["H'mraa's Rage also", "h'mraa's Rage also"],
+    ["H'mraa's Rage", "h'mraa's Rage also"],
+  ]) {
+    if (!Object.hasOwn(renamed, oldName)) continue;
+    if (!Object.hasOwn(renamed, newName)) renamed[newName] = renamed[oldName];
+    delete renamed[oldName];
+  }
+  return renamed;
 }
 
 function loadDeckBuilderState() {
@@ -161,14 +219,10 @@ function loadDeckBuilderState() {
   for (const deck of DECKS) {
     const stored = saved.decks && saved.decks[deck];
     // A v1 save held every count. Carry forward only values the user changed.
-    const overrides = saved.version === 1
-      ? quantityOverrides(savedQuantities(stored, LEGACY_DEFAULT_QTY), LEGACY_DEFAULT_QTY)
-      : stored;
-    deckQty[deck] = savedQuantities(overrides, DEFAULT_QTY[deck]);
+    const overrides = saved.version === 1 ? quantityOverrides(savedQuantities(stored, LEGACY_DEFAULT_QTY), LEGACY_DEFAULT_QTY) : stored;
+    deckQty[deck] = savedQuantities(renamedGodQuantities(overrides), DEFAULT_QTY[deck]);
   }
-  const starterOverrides = saved.version === 1
-    ? quantityOverrides(savedQuantities(saved.starter, DEFAULT_STARTER_QTY), DEFAULT_STARTER_QTY)
-    : saved.starter;
+  const starterOverrides = saved.version === 1 ? quantityOverrides(savedQuantities(saved.starter, DEFAULT_STARTER_QTY), DEFAULT_STARTER_QTY) : saved.starter;
   starterQty = savedQuantities(starterOverrides, DEFAULT_STARTER_QTY);
 }
 
@@ -179,11 +233,14 @@ function saveDeckBuilderState() {
       deckStorageAvailable = false;
       return;
     }
-    storage.setItem(DECK_STORAGE_KEY, JSON.stringify({
-      version: 2,
-      decks: Object.fromEntries(DECKS.map((deck) => [deck, quantityOverrides(deckQty[deck], DEFAULT_QTY[deck])])),
-      starter: quantityOverrides(starterQty, DEFAULT_STARTER_QTY),
-    }));
+    storage.setItem(
+      DECK_STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        decks: Object.fromEntries(DECKS.map((deck) => [deck, quantityOverrides(deckQty[deck], DEFAULT_QTY[deck])])),
+        starter: quantityOverrides(starterQty, DEFAULT_STARTER_QTY),
+      }),
+    );
     deckStorageAvailable = true;
   } catch (_) {
     deckStorageAvailable = false;
@@ -421,9 +478,13 @@ function startGame() {
   state.turnHits = [];
   state.turnStrain = [];
 
-  const dealt = cfg.playerCount + ' players dealt up to four starting cards each; ' +
-    state.boxedStarterCount + ' unused starting cards returned to the box; shared hand of ' +
-    state.players[0].hand.length + ' bridge cards';
+  const dealt =
+    cfg.playerCount +
+    ' players dealt up to four starting cards each; ' +
+    state.boxedStarterCount +
+    ' unused starting cards returned to the box; shared hand of ' +
+    state.players[0].hand.length +
+    ' bridge cards';
   addLog(null, [['note', 'Game start — ' + dealt]]);
   addLog(null, [['note', 'Deck A: ' + deckSize(cfg, 'A') + ' cards · Deck B: ' + deckSize(cfg, 'B') + ' cards']]);
   if (openingGods.length) {
@@ -549,8 +610,10 @@ function fireGod(card) {
   state.turnGods.push(card);
 
   let outcome = 'No simulated effect has been set for this card yet.';
-  if (card.fx === 'weaken') {
-    const hit = damageSegment(randInt(0, SEGMENTS - 1), card.name, 1);
+  if (card.fx === 'weaken' || card.fx === 'weaken-first-half' || card.fx === 'weaken-second-half') {
+    const first = card.fx === 'weaken-second-half' ? SEGMENTS / 2 : 0;
+    const last = card.fx === 'weaken-first-half' ? SEGMENTS / 2 - 1 : SEGMENTS - 1;
+    const hit = damageSegment(randInt(first, last), card.name, 1);
     outcome = hit ? 'Bridge ' + hitText(hit) : 'The bridge was already broken.';
   }
   if (card.fx === 'strain') {
@@ -1017,7 +1080,9 @@ function render() {
   document.getElementById('deck-note').textContent =
     'Deck A draws first; Deck B takes over when A runs out. After B runs out, discarded cards reshuffle. ' +
     'Changing a quantity resets the table and updates the snap forecast. ' +
-    (deckStorageAvailable ? 'Deck A, Deck B, and starting deck quantities are saved in this browser.' : 'Browser storage is unavailable; deck changes will not persist.');
+    (deckStorageAvailable
+      ? 'Deck A, Deck B, and starting deck quantities are saved in this browser.'
+      : 'Browser storage is unavailable; deck changes will not persist.');
   document.getElementById('starter-note').textContent =
     starterSize(state.cfg) < state.cfg.playerCount * 4
       ? 'Add at least ' + (state.cfg.playerCount * 4 - starterSize(state.cfg)) + ' cards to deal four to every player.'
