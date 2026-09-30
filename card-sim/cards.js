@@ -24,6 +24,8 @@ function isTreasure(card) {
 }
 
 // `fx` drives immediate effects. Treasure values count while a player holds the card.
+// The per-card qty values are the former shared defaults, kept for browser-save migration.
+// Current Deck A and Deck B defaults are defined below.
 const CARD_DEFS = [
   { name: 'Pickaxe', type: 'gift', qty: 1, effect: 'n/a' },
   { name: 'Climbing Equipment', type: 'gift', qty: 1, effect: 'n/a' },
@@ -79,12 +81,37 @@ for (const c of CATEGORIES) {
 }
 
 const MAX_QTY = 40;
-const DEFAULT_QTY = {};
-for (const d of CARD_DEFS) DEFAULT_QTY[d.name] = d.qty;
-
 const DECKS = ['A', 'B'];
-// Each deck starts with the same list and can be tuned independently.
-let deckQty = { A: Object.assign({}, DEFAULT_QTY), B: Object.assign({}, DEFAULT_QTY) };
+// Used only to migrate browser saves made before the decks had separate defaults.
+const LEGACY_DEFAULT_QTY = Object.fromEntries(CARD_DEFS.map((d) => [d.name, d.qty]));
+function deckQuantities(included) {
+  return Object.assign(Object.fromEntries(CARD_DEFS.map((d) => [d.name, 0])), included);
+}
+const DEFAULT_QTY = {
+  A: deckQuantities({
+    'Bridge Weakens': 3, 'Strength Test': 2, 'Divine Thunderstorm': 1,
+    'The Call of Xal Tok': 1, "The Call of H'mraa": 1,
+    'Pickaxe': 1, 'Climbing Equipment': 1,
+    'Veridian Talon': 1, 'Lasso': 1, 'Wind Fan': 1, 'Hissing Hourglass': 1,
+    'Hooky Stick': 1, 'Cinnabar Dust': 1, 'Blood Jade Scarab': 1,
+    'Quartz Gold': 1, 'Glacial Gold': 1, 'Brimstone Gold': 1, 'Igneous Gold': 1,
+    'Neutral Gold': 4, 'Heart of Xal Tok': 1, "Breath of H'mraa": 1,
+    'Heal': 2, 'Strength of the Jaguars': 1, 'Rucksack Check': 2,
+    'Steal': 4, 'Defend': 1, 'Brace': 1, 'Run': 2,
+  }),
+  B: deckQuantities({
+    'Bridge Weakens': 3, 'Strength Test': 2, 'Divine Thunderstorm': 1,
+    'Mischief Monkey': 1, 'Termites': 1,
+    'Bristol Gold': 1, 'Grappling Hook': 1,
+    'Veridian Talon': 1, 'Lasso': 1, 'Wind Fan': 1, 'Hissing Hourglass': 1,
+    'Horn of the Ancients': 1, 'Chant of Solitude': 1, 'Hooky Stick': 1,
+    'Echo Conch': 1, 'Cinnabar Dust': 1, 'Blood Jade Scarab': 1,
+    'Statue of Xal Tok': 1, "Statue of H'mraa": 1, 'Gold Sarcophagus': 1,
+    'Heal': 2, 'Strength of the Jaguars': 1, 'Rucksack Check': 3,
+    'Steal': 6, 'Defend': 1, 'Brace': 1, 'Run': 3,
+  }),
+};
+let deckQty = { A: Object.assign({}, DEFAULT_QTY.A), B: Object.assign({}, DEFAULT_QTY.B) };
 
 const STARTER_DEFS = [
   { name: 'Small Gold Coin', type: 'item', qty: 8, effect: 'Blue 1 · Red 1', points: { blue: 1, red: 1 } },
@@ -107,6 +134,12 @@ function savedQuantities(saved, defaults) {
   return quantities;
 }
 
+function quantityOverrides(quantities, defaults) {
+  return Object.fromEntries(Object.keys(defaults)
+    .filter((name) => quantities[name] !== defaults[name])
+    .map((name) => [name, quantities[name]]));
+}
+
 function loadDeckBuilderState() {
   let raw;
   try {
@@ -124,9 +157,19 @@ function loadDeckBuilderState() {
   } catch (_) {
     return;
   }
-  if (!saved || saved.version !== 1) return;
-  for (const deck of DECKS) deckQty[deck] = savedQuantities(saved.decks && saved.decks[deck], DEFAULT_QTY);
-  starterQty = savedQuantities(saved.starter, DEFAULT_STARTER_QTY);
+  if (!saved || (saved.version !== 1 && saved.version !== 2)) return;
+  for (const deck of DECKS) {
+    const stored = saved.decks && saved.decks[deck];
+    // A v1 save held every count. Carry forward only values the user changed.
+    const overrides = saved.version === 1
+      ? quantityOverrides(savedQuantities(stored, LEGACY_DEFAULT_QTY), LEGACY_DEFAULT_QTY)
+      : stored;
+    deckQty[deck] = savedQuantities(overrides, DEFAULT_QTY[deck]);
+  }
+  const starterOverrides = saved.version === 1
+    ? quantityOverrides(savedQuantities(saved.starter, DEFAULT_STARTER_QTY), DEFAULT_STARTER_QTY)
+    : saved.starter;
+  starterQty = savedQuantities(starterOverrides, DEFAULT_STARTER_QTY);
 }
 
 function saveDeckBuilderState() {
@@ -136,7 +179,11 @@ function saveDeckBuilderState() {
       deckStorageAvailable = false;
       return;
     }
-    storage.setItem(DECK_STORAGE_KEY, JSON.stringify({ version: 1, decks: deckQty, starter: starterQty }));
+    storage.setItem(DECK_STORAGE_KEY, JSON.stringify({
+      version: 2,
+      decks: Object.fromEntries(DECKS.map((deck) => [deck, quantityOverrides(deckQty[deck], DEFAULT_QTY[deck])])),
+      starter: quantityOverrides(starterQty, DEFAULT_STARTER_QTY),
+    }));
     deckStorageAvailable = true;
   } catch (_) {
     deckStorageAvailable = false;
@@ -1552,7 +1599,7 @@ function renderDeckBuilder() {
 }
 
 function isDefaultDeck(deck) {
-  return CARD_DEFS.every((d) => (deckQty[deck][d.name] || 0) === DEFAULT_QTY[d.name]);
+  return CARD_DEFS.every((d) => (deckQty[deck][d.name] || 0) === DEFAULT_QTY[deck][d.name]);
 }
 
 function setQty(deck, name, value) {
@@ -1856,7 +1903,7 @@ document.getElementById('history-tabs').addEventListener('click', (e) => {
 for (const deck of DECKS) {
   document.getElementById('deck-reset-' + deck.toLowerCase()).addEventListener('click', (e) => {
     e.preventDefault();
-    deckQty[deck] = Object.assign({}, DEFAULT_QTY);
+    deckQty[deck] = Object.assign({}, DEFAULT_QTY[deck]);
     state.cfg.qty = { A: Object.assign({}, deckQty.A), B: Object.assign({}, deckQty.B) };
     deckChanged();
   });
