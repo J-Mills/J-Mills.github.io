@@ -94,6 +94,54 @@ const STARTER_DEFS = [
 ];
 const DEFAULT_STARTER_QTY = Object.fromEntries(STARTER_DEFS.map((d) => [d.name, d.qty]));
 let starterQty = Object.assign({}, DEFAULT_STARTER_QTY);
+const DECK_STORAGE_KEY = 'card-sim-deck-builder-v1';
+let deckStorageAvailable = false;
+
+function savedQuantities(saved, defaults) {
+  const quantities = Object.assign({}, defaults);
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return quantities;
+  for (const name of Object.keys(defaults)) {
+    const value = saved[name];
+    if (Number.isInteger(value) && value >= 0 && value <= MAX_QTY) quantities[name] = value;
+  }
+  return quantities;
+}
+
+function loadDeckBuilderState() {
+  let raw;
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) return;
+    raw = storage.getItem(DECK_STORAGE_KEY);
+  } catch (_) {
+    deckStorageAvailable = false;
+    return;
+  }
+  deckStorageAvailable = true;
+  let saved;
+  try {
+    saved = JSON.parse(raw || 'null');
+  } catch (_) {
+    return;
+  }
+  if (!saved || saved.version !== 1) return;
+  for (const deck of DECKS) deckQty[deck] = savedQuantities(saved.decks && saved.decks[deck], DEFAULT_QTY);
+  starterQty = savedQuantities(saved.starter, DEFAULT_STARTER_QTY);
+}
+
+function saveDeckBuilderState() {
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) {
+      deckStorageAvailable = false;
+      return;
+    }
+    storage.setItem(DECK_STORAGE_KEY, JSON.stringify({ version: 1, decks: deckQty, starter: starterQty }));
+    deckStorageAvailable = true;
+  } catch (_) {
+    deckStorageAvailable = false;
+  }
+}
 
 function deckDefs(cfg, deck) {
   return CARD_DEFS.map((d) => Object.assign({}, d, { qty: cfg.qty[deck][d.name] || 0 }));
@@ -236,6 +284,7 @@ function freshState(cfg, forecasting) {
     deck: [],
     reserveDeck: [],
     starterDeck: [],
+    boxedStarterCount: 0,
     activeDeck: 'A',
     discard: [],
     removed: [],
@@ -298,6 +347,8 @@ function dealHands() {
       if (card) p.backpack.push(card);
     }
   }
+  state.boxedStarterCount = state.starterDeck.length;
+  state.starterDeck = [];
   drawCards(state.players[0], cfg.handSize);
   for (const p of state.players) p.fresh = [];
   state.lastFresh = state.pendingGod ? [state.pendingGod.uid] : [];
@@ -323,7 +374,9 @@ function startGame() {
   state.turnHits = [];
   state.turnStrain = [];
 
-  const dealt = cfg.playerCount + ' players dealt up to four starting cards each; shared hand of ' + state.players[0].hand.length + ' bridge cards';
+  const dealt = cfg.playerCount + ' players dealt up to four starting cards each; ' +
+    state.boxedStarterCount + ' unused starting cards returned to the box; shared hand of ' +
+    state.players[0].hand.length + ' bridge cards';
   addLog(null, [['note', 'Game start — ' + dealt]]);
   addLog(null, [['note', 'Deck A: ' + deckSize(cfg, 'A') + ' cards · Deck B: ' + deckSize(cfg, 'B') + ' cards']]);
   if (openingGods.length) {
@@ -784,6 +837,7 @@ function cloneState(s) {
   c.deck = s.deck.slice();
   c.reserveDeck = s.reserveDeck.slice();
   c.starterDeck = s.starterDeck.slice();
+  c.boxedStarterCount = s.boxedStarterCount;
   c.activeDeck = s.activeDeck;
   c.discard = s.discard.slice();
   c.removed = s.removed.slice();
@@ -915,11 +969,12 @@ function render() {
     'Acts take effect when drawn. With auto discard off, use the orange card in the shared hand to discard it and draw a replacement.';
   document.getElementById('deck-note').textContent =
     'Deck A draws first; Deck B takes over when A runs out. After B runs out, discarded cards reshuffle. ' +
-    'Changing a quantity resets the table and updates the snap forecast.';
+    'Changing a quantity resets the table and updates the snap forecast. ' +
+    (deckStorageAvailable ? 'Deck A, Deck B, and starting deck quantities are saved in this browser.' : 'Browser storage is unavailable; deck changes will not persist.');
   document.getElementById('starter-note').textContent =
     starterSize(state.cfg) < state.cfg.playerCount * 4
       ? 'Add at least ' + (state.cfg.playerCount * 4 - starterSize(state.cfg)) + ' cards to deal four to every player.'
-      : 'Four random cards per player; unused starting cards stay in the starting deck.';
+      : 'Four random cards per player; any undealt starting cards go back in the box.';
   document.getElementById('discard-note').textContent =
     'Random mode only: up to ' + state.cfg.playMax + ' cards leave the shared hand each turn. In Manual mode, use Pass Turn to refill it.';
 }
@@ -1720,6 +1775,7 @@ document.getElementById('turn-bar').addEventListener('click', (e) => {
 let deckTimer = null;
 function deckChanged() {
   if (deckTimer) clearTimeout(deckTimer);
+  saveDeckBuilderState();
   updateDeckBuilderValues();
   deckTimer = setTimeout(() => {
     deckTimer = null;
@@ -1853,4 +1909,5 @@ document.getElementById('speed').addEventListener('change', () => {
   }),
 );
 
+loadDeckBuilderState();
 resetTable();
