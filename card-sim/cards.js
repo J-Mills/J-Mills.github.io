@@ -188,7 +188,7 @@ function renamedGodQuantities(quantities) {
   for (const [oldName, newName] of [
     ['Rage of the Maw', 'Wrath of the Maw'],
     ['Bridge Weakens', 'Wrath of the Maw'],
-    ["H'mraa's Rage also", "H'mraa's Rage also"],
+    ["h'mraa's Rage also", "H'mraa's Rage also"],
     ["H'mraa's Rage", "H'mraa's Rage also"],
   ]) {
     if (!Object.hasOwn(renamed, oldName)) continue;
@@ -247,6 +247,49 @@ function saveDeckBuilderState() {
   }
 }
 
+/* ------------------------------ saved decks ------------------------------- */
+
+// Named snapshots of Deck A, Deck B and the starting deck, kept in this browser.
+const PRESET_STORAGE_KEY = 'card-sim-deck-presets-v1';
+
+function readPresets() {
+  try {
+    const saved = JSON.parse(globalThis.localStorage.getItem(PRESET_STORAGE_KEY) || 'null');
+    if (saved && saved.version === 1 && saved.presets && typeof saved.presets === 'object') return saved.presets;
+  } catch (_) {}
+  return {};
+}
+
+function writePresets(presets) {
+  try {
+    globalThis.localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify({ version: 1, presets }));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function currentDeckSetup() {
+  return {
+    decks: { A: Object.assign({}, deckQty.A), B: Object.assign({}, deckQty.B) },
+    starter: Object.assign({}, starterQty),
+  };
+}
+
+// Presets hold every count, so a card missing from one was not in the game when it was saved.
+function noneOf(defaults) {
+  return Object.fromEntries(Object.keys(defaults).map((name) => [name, 0]));
+}
+
+function applyDeckSetup(setup) {
+  for (const deck of DECKS) {
+    deckQty[deck] = savedQuantities(renamedGodQuantities(setup.decks && setup.decks[deck]), noneOf(DEFAULT_QTY[deck]));
+  }
+  starterQty = savedQuantities(setup.starter, noneOf(DEFAULT_STARTER_QTY));
+  saveDeckBuilderState();
+  resetTable();
+}
+
 function deckDefs(cfg, deck) {
   return CARD_DEFS.map((d) => Object.assign({}, d, { qty: cfg.qty[deck][d.name] || 0 }));
 }
@@ -275,7 +318,9 @@ function typeTotals(cfg, deck) {
 }
 
 const SEGMENTS = 6;
-const FORECAST_TRIALS = 300;
+const FORECAST_TRIALS = 10000;
+// Playouts run in short slices so the page stays responsive while they finish.
+const FORECAST_SLICE_MS = 30;
 const FORECAST_HORIZON = 80;
 const HIST_TURNS = 30;
 
@@ -998,8 +1043,13 @@ function trialState(real) {
 }
 
 // Play the position out many times to see when the bridge tends to go.
+// The first slice runs straight away; the rest follow in the background and
+// are abandoned as soon as the position changes.
+let forecastRun = 0;
+
 function updateForecast() {
   if (!state || state.forecasting) return;
+  const run = ++forecastRun;
   if (!state.started && starterSize(state.cfg) < state.cfg.playerCount * 4) {
     state.forecast = null;
     return;
@@ -1010,32 +1060,58 @@ function updateForecast() {
   }
 
   const real = state;
-  const from = real.started ? real.turn : 1;
-  const delays = [];
-  const bySegment = new Array(SEGMENTS).fill(0);
+  const job = {
+    real,
+    from: real.started ? real.turn : 1,
+    done: 0,
+    delays: [],
+    bySegment: new Array(SEGMENTS).fill(0),
+  };
+  runForecastSlice(job);
 
-  for (let t = 0; t < FORECAST_TRIALS; t++) {
-    state = trialState(real);
-    let guard = 0;
-    while (!state.broken && state.turn - from < FORECAST_HORIZON && guard++ <= FORECAST_HORIZON) {
-      takeTurn();
+  const step = () => {
+    if (run !== forecastRun || state !== real || job.done >= FORECAST_TRIALS) return;
+    runForecastSlice(job);
+    // Segment odds redraw the bridge, so leave it alone until the run is done
+    // rather than swapping segments out from under a click.
+    if (job.done >= FORECAST_TRIALS) renderBridge();
+    else document.getElementById('forecast').innerHTML = forecastHTML();
+    setTimeout(step, 0);
+  };
+  setTimeout(step, 0);
+}
+
+function runForecastSlice(job) {
+  const real = job.real;
+  const stop = performance.now() + FORECAST_SLICE_MS;
+  try {
+    while (job.done < FORECAST_TRIALS && performance.now() < stop) {
+      state = trialState(real);
+      let guard = 0;
+      while (!state.broken && state.turn - job.from < FORECAST_HORIZON && guard++ <= FORECAST_HORIZON) {
+        takeTurn();
+      }
+      if (state.broken) {
+        job.delays.push(state.brokenTurn - job.from);
+        job.bySegment[state.brokenSegment]++;
+      }
+      job.done++;
     }
-    if (state.broken) {
-      delays.push(state.brokenTurn - from);
-      bySegment[state.brokenSegment]++;
-    }
+  } finally {
+    state = real;
   }
-  state = real;
 
+  const { delays, done } = job;
   const sorted = delays.slice().sort((a, b) => a - b);
-  const within = (k) => delays.filter((d) => d <= k).length / FORECAST_TRIALS;
+  const within = (k) => delays.filter((d) => d <= k).length / done;
   const hist = new Array(HIST_TURNS).fill(0);
   for (const d of delays) if (d < HIST_TURNS) hist[d]++;
 
-  state.forecast = {
-    from,
+  real.forecast = {
+    from: job.from,
     fresh: !real.started,
-    trials: FORECAST_TRIALS,
+    trials: done,
+    target: FORECAST_TRIALS,
     broke: delays.length,
     median: sorted.length ? sorted[Math.floor(sorted.length / 2)] : null,
     mean: sorted.length ? sorted.reduce((a, b) => a + b, 0) / sorted.length : null,
@@ -1044,7 +1120,7 @@ function updateForecast() {
     in10: within(9),
     in20: within(19),
     hist,
-    segmentRisk: bySegment.map((n) => (delays.length ? n / delays.length : 0)),
+    segmentRisk: job.bySegment.map((n) => (delays.length ? n / delays.length : 0)),
   };
 }
 
@@ -1080,7 +1156,7 @@ function render() {
   document.getElementById('god-note').textContent =
     'Acts take effect when drawn. With auto discard off, use the orange card in the shared hand to discard it and draw a replacement.';
   document.getElementById('deck-note').textContent =
-    'Deck A draws first; Deck B takes over when A runs out. After B runs out, its discarded cards reshuffle into a new Deck B; Deck A cards stay in the discard.' +
+    'Deck A draws first; Deck B takes over when A runs out. After B runs out, its discarded cards reshuffle into a new Deck B; Deck A cards stay in the discard. ' +
     'Changing a quantity resets the table and updates the snap forecast. ' +
     (deckStorageAvailable
       ? 'Deck A, Deck B, and starting deck quantities are saved in this browser.'
@@ -1315,7 +1391,7 @@ function sharedPanelHTML() {
       );
     })
     .join('');
-  return (
+  const hand =
     '<div class="player' +
     (state.started ? ' active' : '') +
     '">' +
@@ -1328,11 +1404,9 @@ function sharedPanelHTML() {
     '<div class="hand">' +
     handHTML(cards, state.lastFresh || [], isPicking() && state.phase === 'play') +
     '</div>' +
-    '</div>' +
-    '<div class="panel"><h3>Player Backpacks &amp; Banks</h3><div class="seat-row">' +
-    seats +
-    '</div></div>'
-  );
+    '</div>';
+  const backpacks = '<div class="panel"><h3>Player Backpacks &amp; Banks</h3><div class="seat-row">' + seats + '</div></div>';
+  return { hand, backpacks };
 }
 
 function renderBridge() {
@@ -1442,7 +1516,8 @@ function forecastHTML() {
   return (
     '<div class="forecast">' +
     '<h4>Snap forecast — ' +
-    f.trials +
+    (f.trials < f.target ? f.trials.toLocaleString() + ' of ' : '') +
+    f.target.toLocaleString() +
     ' playouts ' +
     where +
     ', random play</h4>' +
@@ -1522,9 +1597,9 @@ function renderTurnBar() {
 }
 
 function renderPlayers() {
-  const view = document.getElementById('players-view');
-  view.className = 'players shared';
-  view.innerHTML = sharedPanelHTML();
+  const { hand, backpacks } = sharedPanelHTML();
+  document.getElementById('hand-view').innerHTML = hand;
+  document.getElementById('backpacks-view').innerHTML = backpacks;
 }
 
 function renderLog() {
@@ -1568,78 +1643,94 @@ function renderDiscard() {
 
 let deckBuilderBuilt = false;
 
+// One row per card with a stepper for each deck, so A and B sit side by side.
+function deckStepperHTML(deck, name) {
+  return (
+    '<span class="db-step">' +
+    '<button class="db-btn" data-deck="' +
+    deck +
+    '" data-card="' +
+    esc(name) +
+    '" data-delta="-1" aria-label="one fewer ' +
+    esc(name) +
+    ' in Deck ' +
+    deck +
+    '">−</button>' +
+    '<input class="db-qty" type="number" min="0" max="' +
+    MAX_QTY +
+    '" step="1" data-deck="' +
+    deck +
+    '" data-card="' +
+    esc(name) +
+    '" value="' +
+    (deckQty[deck][name] || 0) +
+    '" aria-label="' +
+    esc(name) +
+    ' in Deck ' +
+    deck +
+    '" />' +
+    '<button class="db-btn" data-deck="' +
+    deck +
+    '" data-card="' +
+    esc(name) +
+    '" data-delta="1" aria-label="one more ' +
+    esc(name) +
+    ' in Deck ' +
+    deck +
+    '">+</button>' +
+    '</span>'
+  );
+}
+
 function buildDeckBuilder() {
-  for (const deck of DECKS) {
-    const blocks = CATEGORIES.map((cat) => {
-      const rows = CARD_DEFS.filter((d) => d.type === cat.key)
-        .map((d) => {
-          const note = d.effect && d.effect !== 'n/a' ? '<em>' + esc(d.effect) + '</em>' : '<em class="db-na">no simulated effect</em>';
-          return (
-            '<div class="db-row">' +
-            '<span class="db-name">' +
-            esc(d.name) +
-            note +
-            '</span>' +
-            '<span class="db-step">' +
-            '<button class="db-btn" data-deck="' +
-            deck +
-            '" data-card="' +
-            esc(d.name) +
-            '" data-delta="-1" aria-label="one fewer ' +
-            esc(d.name) +
-            ' in Deck ' +
-            deck +
-            '">−</button>' +
-            '<input class="db-qty" type="number" min="0" max="' +
-            MAX_QTY +
-            '" step="1" ' +
-            'data-deck="' +
-            deck +
-            '" data-card="' +
-            esc(d.name) +
-            '" value="' +
-            (deckQty[deck][d.name] || 0) +
-            '" />' +
-            '<button class="db-btn" data-deck="' +
-            deck +
-            '" data-card="' +
-            esc(d.name) +
-            '" data-delta="1" aria-label="one more ' +
-            esc(d.name) +
-            ' in Deck ' +
-            deck +
-            '">+</button>' +
-            '</span>' +
-            '</div>'
-          );
-        })
-        .join('');
+  document.getElementById('deck-grid').innerHTML = CATEGORIES.map((cat) => {
+    const rows = CARD_DEFS.filter((d) => d.type === cat.key)
+      .map((d) => {
+        const effect = d.effect && d.effect !== 'n/a' ? d.effect : 'No simulated effect';
+        return (
+          '<div class="db-row">' +
+          '<span class="db-name" title="' +
+          esc(effect) +
+          '">' +
+          esc(d.name) +
+          '<em' +
+          (effect === d.effect ? '' : ' class="db-na"') +
+          '>' +
+          esc(effect) +
+          '</em></span>' +
+          DECKS.map((deck) => deckStepperHTML(deck, d.name)).join('') +
+          '</div>'
+        );
+      })
+      .join('');
 
-      return (
-        '<div class="db-cat' +
-        (cat.key === 'god' ? ' god' : '') +
-        '">' +
-        '<div class="db-cat-head">' +
-        '<span class="swatch" style="background:' +
-        cat.colour +
-        '"></span>' +
-        '<span class="db-cat-label">' +
-        esc(cat.label) +
-        (cat.note ? ' <i>' + esc(cat.note) + '</i>' : '') +
-        '</span>' +
-        '<span class="db-cat-total" data-deck="' +
-        deck +
-        '" data-cat="' +
-        cat.key +
-        '">0</span>' +
-        '</div>' +
-        rows +
-        '</div>'
-      );
-    }).join('');
-
-    document.getElementById('deck-grid-' + deck.toLowerCase()).innerHTML = blocks;
-  }
+    return (
+      '<div class="db-cat' +
+      (cat.key === 'god' ? ' god' : '') +
+      '">' +
+      '<div class="db-cat-head">' +
+      '<span class="db-cat-label"><span class="swatch" style="background:' +
+      cat.colour +
+      '"></span>' +
+      esc(cat.label) +
+      '</span>' +
+      DECKS.map(
+        (deck) =>
+          '<span class="db-col-head deck-' +
+          deck.toLowerCase() +
+          '">' +
+          deck +
+          ' <span class="db-cat-total" data-deck="' +
+          deck +
+          '" data-cat="' +
+          cat.key +
+          '">0</span></span>',
+      ).join('') +
+      '</div>' +
+      rows +
+      '</div>'
+    );
+  }).join('');
 }
 
 function updateDeckBuilderValues() {
@@ -1649,7 +1740,7 @@ function updateDeckBuilderValues() {
     if (document.activeElement !== input && input.value !== value) input.value = value;
   }
   for (const el of document.querySelectorAll('.db-cat-total')) {
-    el.textContent = (typeTotals(state.cfg, el.dataset.deck)[el.dataset.cat] || 0) + ' cards';
+    el.textContent = typeTotals(state.cfg, el.dataset.deck)[el.dataset.cat] || 0;
   }
   for (const deck of DECKS) {
     document.getElementById('deck-total-' + deck.toLowerCase()).textContent = deckSize(state.cfg, deck) + ' cards';
@@ -1663,6 +1754,27 @@ function renderDeckBuilder() {
     deckBuilderBuilt = true;
   }
   updateDeckBuilderValues();
+}
+
+function renderPresets(selected) {
+  const presets = readPresets();
+  const names = Object.keys(presets).sort((a, b) => a.localeCompare(b));
+  const select = document.getElementById('preset-select');
+  const keep = selected !== undefined ? selected : select.value;
+  select.innerHTML = names.length
+    ? names.map((name) => '<option value="' + esc(name) + '">' + esc(name) + '</option>').join('')
+    : '<option value="">No saved decks yet</option>';
+  if (names.includes(keep)) select.value = keep;
+  for (const id of ['preset-select', 'preset-load', 'preset-delete', 'preset-export']) {
+    document.getElementById(id).disabled = !names.length;
+  }
+  for (const id of ['preset-name', 'preset-save', 'preset-import']) {
+    document.getElementById(id).disabled = !deckStorageAvailable;
+  }
+}
+
+function presetNote(text) {
+  document.getElementById('preset-note').textContent = text;
 }
 
 function isDefaultDeck(deck) {
@@ -1917,6 +2029,10 @@ document.getElementById('deck-builders').addEventListener('change', (e) => {
   deckChanged();
 });
 
+document.getElementById('db-show-effects').addEventListener('change', (e) => {
+  document.getElementById('deck-grid').classList.toggle('show-effects', e.target.checked);
+});
+
 document.getElementById('starter-grid').addEventListener('click', (e) => {
   const btn = e.target.closest('.db-btn');
   if (!btn) return;
@@ -1976,6 +2092,72 @@ for (const deck of DECKS) {
   });
 }
 
+document.getElementById('preset-save').addEventListener('click', () => {
+  const input = document.getElementById('preset-name');
+  const name = input.value.trim();
+  if (!name) {
+    presetNote('Type a name for this setup first.');
+    input.focus();
+    return;
+  }
+  const presets = readPresets();
+  if (presets[name] && !confirm('Replace the saved deck "' + name + '" with the current decks?')) return;
+  presets[name] = currentDeckSetup();
+  if (!writePresets(presets)) {
+    presetNote('Could not save — browser storage is unavailable.');
+    return;
+  }
+  input.value = '';
+  renderPresets(name);
+  presetNote('Saved "' + name + '".');
+});
+document.getElementById('preset-name').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('preset-save').click();
+});
+document.getElementById('preset-load').addEventListener('click', () => {
+  const name = document.getElementById('preset-select').value;
+  const preset = readPresets()[name];
+  if (!preset) return;
+  applyDeckSetup(preset);
+  presetNote('Loaded "' + name + '" — the table has been reset.');
+});
+document.getElementById('preset-delete').addEventListener('click', () => {
+  const name = document.getElementById('preset-select').value;
+  const presets = readPresets();
+  if (!presets[name] || !confirm('Delete the saved deck "' + name + '"?')) return;
+  delete presets[name];
+  writePresets(presets);
+  renderPresets();
+  presetNote('Deleted "' + name + '".');
+});
+document.getElementById('preset-export').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({ version: 1, presets: readPresets() }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'card-sim-decks.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById('preset-import').addEventListener('click', () => document.getElementById('preset-file').click());
+document.getElementById('preset-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  let incoming;
+  try {
+    const parsed = JSON.parse(await file.text());
+    incoming = parsed && parsed.version === 1 && parsed.presets;
+  } catch (_) {}
+  if (!incoming || typeof incoming !== 'object') {
+    presetNote('That file is not a saved-decks export.');
+    return;
+  }
+  const names = Object.keys(incoming).filter((name) => incoming[name] && typeof incoming[name] === 'object');
+  writePresets(Object.assign(readPresets(), Object.fromEntries(names.map((name) => [name, incoming[name]]))));
+  renderPresets(names[0]);
+  presetNote('Imported ' + names.length + ' saved deck' + (names.length === 1 ? '' : 's') + '.');
+});
+
 document.getElementById('new-game').addEventListener('click', startGame);
 document.getElementById('next-turn').addEventListener('click', () => {
   stopAuto();
@@ -2025,3 +2207,4 @@ document.getElementById('speed').addEventListener('change', () => {
 
 loadDeckBuilderState();
 resetTable();
+renderPresets();

@@ -19,8 +19,91 @@
       }
 
       h1 {
-        margin-bottom: 1.5rem;
         font-size: 1.4rem;
+      }
+
+      /* ---------- top bar: play controls stay in reach while scrolling ---------- */
+
+      .topbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        margin: -1rem -1rem 1rem;
+        padding: 0.6rem 1rem;
+        background: rgba(244, 244, 244, 0.95);
+        border-bottom: 1px solid #ddd;
+        backdrop-filter: blur(4px);
+      }
+
+      /* Pinned only where there is room; on a phone it would eat the screen. */
+      @media (min-width: 700px) {
+        .topbar {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+        }
+      }
+
+      .play-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .play-controls button {
+        padding: 0.4rem 1rem;
+      }
+
+      .speed-control {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8rem;
+        color: #555;
+      }
+
+      .speed-control input {
+        width: 110px;
+      }
+
+      .speed-control .slider-val {
+        min-width: 3.4rem;
+        font-size: 0.8rem;
+      }
+
+      .top-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .top-grid > .panel,
+      .top-grid .forecast {
+        margin-bottom: 0;
+      }
+
+      @media (min-width: 1100px) {
+        .top-grid {
+          grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+        }
+
+        .top-grid:has(#forecast:empty) {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .top-grid .forecast {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+
+        .top-grid .hist {
+          flex: 1;
+        }
       }
 
       .layout {
@@ -322,8 +405,41 @@
         content: none;
       }
 
-      .players.shared {
-        grid-template-columns: 1fr;
+      .table-area {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .table-area .panel {
+        margin-bottom: 0;
+      }
+
+      .hand-column {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .hand-column > :empty {
+        display: none;
+      }
+
+      /* Wide screens: shared hand and backpacks side by side so the whole table fits on screen. */
+      @media (min-width: 1200px) {
+        .table-area {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+          align-items: start;
+        }
+
+        .table-area .backpack-row {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .table-area .backpack-card {
+          min-height: 0;
+        }
       }
 
       .seat-row {
@@ -705,6 +821,60 @@
         font-weight: 600;
       }
 
+      /* ---------- saved decks ---------- */
+
+      .preset-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .preset-row select,
+      .preset-row input[type='text'] {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.85rem;
+        font-family: inherit;
+      }
+
+      .preset-row select:focus,
+      .preset-row input[type='text']:focus {
+        outline: none;
+        border-color: #5b8dee;
+      }
+
+      .preset-row button {
+        padding: 0.35rem 0.8rem;
+        font-size: 0.8rem;
+      }
+
+      .preset-files span {
+        flex: 1;
+        font-size: 0.72rem;
+        color: #999;
+      }
+
+      .preset-panel .field-note {
+        margin: 0;
+      }
+
+      .deck-setup-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0 1rem;
+        align-items: start;
+      }
+
+      @media (min-width: 1200px) {
+        .deck-setup-row {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+      }
+
       /* ---------- deck builder ---------- */
 
       .deck-panel {
@@ -887,6 +1057,128 @@
         border-color: #5b8dee;
       }
 
+      /* ---------- combined A/B deck builder ---------- */
+
+      /* Columns rather than a grid, so short categories stack beside the long Items list. */
+      .deck-grid {
+        display: block;
+        columns: 3 300px;
+        column-gap: 0.7rem;
+      }
+
+      .deck-grid .db-cat {
+        break-inside: avoid;
+        margin-bottom: 0.7rem;
+      }
+
+      .deck-grid .db-cat-head,
+      .deck-grid .db-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 4.4rem 4.4rem;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .deck-grid .db-row {
+        padding: 0.08rem 0.2rem;
+        margin: 0 -0.2rem;
+        border-radius: 3px;
+      }
+
+      .deck-grid .db-row:hover {
+        background: rgba(0, 0, 0, 0.035);
+      }
+
+      .deck-grid .db-cat-label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .deck-grid .swatch {
+        width: 9px;
+        height: 9px;
+        border-radius: 2px;
+        flex: none;
+      }
+
+      .db-col-head {
+        text-align: center;
+        font-size: 0.68rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .db-col-head .db-cat-total {
+        font-weight: 400;
+        color: #999;
+      }
+
+      .db-total .deck-a,
+      .db-col-head.deck-a {
+        color: #5a8b61;
+      }
+
+      .db-total .deck-b,
+      .db-col-head.deck-b {
+        color: #9a6b3d;
+      }
+
+      .deck-grid .db-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .deck-grid .db-name em {
+        display: none;
+      }
+
+      .deck-grid.show-effects .db-name {
+        white-space: normal;
+      }
+
+      .deck-grid.show-effects .db-name em {
+        display: block;
+      }
+
+      .deck-grid .db-step {
+        justify-content: center;
+        gap: 0.12rem;
+      }
+
+      .deck-grid button.db-btn {
+        width: 1.15rem;
+        height: 1.15rem;
+        font-size: 0.8rem;
+      }
+
+      .deck-grid input.db-qty {
+        width: 1.9rem;
+        padding: 0.1rem 0;
+        font-size: 0.75rem;
+        -moz-appearance: textfield;
+        appearance: textfield;
+      }
+
+      .deck-grid input.db-qty::-webkit-inner-spin-button,
+      .deck-grid input.db-qty::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      .db-effects-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        cursor: pointer;
+      }
+
+      .deck-tools-buttons {
+        display: flex;
+        gap: 0.4rem;
+      }
+
       /* ---------- bridge ---------- */
 
       .bridge-panel {
@@ -912,7 +1204,7 @@
 
       .bridge-scene {
         overflow-x: auto;
-        padding: 1rem 0.75rem;
+        padding: 0.6rem 0.75rem;
         border-radius: 8px;
         background:
           repeating-linear-gradient(160deg, transparent 0 26px, rgba(255, 255, 255, 0.18) 26px 31px, transparent 31px 58px),
@@ -925,7 +1217,7 @@
         display: grid;
         grid-template-columns: repeat(6, minmax(95px, 1fr));
         gap: 0.3rem;
-        min-width: 650px;
+        min-width: 590px;
       }
 
       .seg::before,
@@ -943,11 +1235,11 @@
       }
 
       .seg::before {
-        top: 16px;
+        top: 10px;
       }
 
       .seg::after {
-        bottom: 16px;
+        bottom: 10px;
       }
 
       .seg.broken::before,
@@ -958,14 +1250,14 @@
       .seg {
         position: relative;
         min-width: 0;
-        min-height: 148px;
+        min-height: 116px;
         border: 2px solid #76502c;
         border-radius: 5px;
         background:
           repeating-linear-gradient(0deg, transparent 0 15px, rgba(70, 39, 16, 0.12) 15px 17px, transparent 17px 30px),
           linear-gradient(90deg, #b7834c, #c89355 48%, #a86f39);
         box-shadow: inset 0 2px 5px rgba(255, 232, 180, 0.25), 0 3px 5px rgba(38, 51, 45, 0.3);
-        padding: 2.2rem 0.3rem 2rem;
+        padding: 1.6rem 0.3rem 1.5rem;
         text-align: center;
         color: #3e2814;
       }
@@ -1388,27 +1680,42 @@
     </style>
   </head>
   <body>
-    <h1>Card Simulator</h1>
+    <header class="topbar">
+      <h1>Card Simulator</h1>
+      <div class="play-controls">
+        <button id="new-game">Start Game</button>
+        <button id="next-turn" class="secondary">Next Turn</button>
+        <button id="auto" class="ghost">Auto</button>
+        <button id="skip" class="ghost">Skip 10</button>
+        <label class="speed-control">
+          Speed
+          <input type="range" id="speed" min="100" max="2000" step="100" value="700" />
+          <span class="slider-val" id="speed-val">700ms</span>
+        </label>
+      </div>
+    </header>
 
-    <div class="panel bridge-panel" id="bridge"></div>
+    <div class="top-grid">
+      <div class="panel bridge-panel" id="bridge"></div>
+      <div id="forecast"></div>
+    </div>
     <div id="broken-banner"></div>
     <div class="stat-grid" id="stats"></div>
-    <div id="forecast"></div>
 
     <div class="layout">
       <div class="results">
+        <div class="table-area" id="players-view">
+          <div class="hand-column">
+            <div id="turn-bar"></div>
+            <div id="hand-view"></div>
+          </div>
+          <div id="backpacks-view"></div>
+        </div>
+
         <div class="legend" id="legend"></div>
-
-        <div id="turn-bar"></div>
-
-        <div class="players" id="players-view"></div>
 
         <div class="setup-layout">
           <div class="controls">
-            <div class="button-row">
-              <button id="new-game">Start Game</button>
-            </div>
-
             <section>
               <h3>Table</h3>
               <div class="field">
@@ -1493,23 +1800,7 @@
               </div>
             </section>
 
-            <section>
-              <h3>Playback</h3>
-              <div class="field">
-                <label>Auto-play speed</label>
-                <div class="slider-row">
-                  <input type="range" id="speed" min="100" max="2000" step="100" value="700" />
-                  <span class="slider-val" id="speed-val">700ms</span>
-                </div>
-              </div>
-            </section>
-
             <div class="button-row">
-              <button id="next-turn" class="secondary">Next Turn</button>
-              <button id="auto" class="ghost">Auto</button>
-            </div>
-            <div class="button-row">
-              <button id="skip" class="ghost">Skip 10</button>
               <button id="save-btn" class="ghost">Save Log</button>
             </div>
           </div>
@@ -1524,24 +1815,50 @@
               <div class="tab-pane hidden" id="pane-discard" role="tabpanel" aria-labelledby="tab-discard"><div id="discard-view"></div></div>
             </div>
 
-            <details class="deck-panel" id="starter-panel" open>
-              <summary><h3>Starting Deck Builder</h3><span class="db-total" id="starter-total"></span></summary>
-              <div class="deck-tools"><span>Shuffled and dealt four per player</span><button id="starter-reset" class="ghost">Reset starting deck</button></div>
-              <div class="field-note" id="starter-note"></div>
-              <div class="db-grid" id="starter-grid"></div>
-            </details>
+            <div class="deck-setup-row">
+              <div class="panel preset-panel">
+                <h3>Saved Decks</h3>
+                <div class="preset-row">
+                  <select id="preset-select" aria-label="Saved deck"></select>
+                  <button id="preset-load" class="secondary">Load</button>
+                  <button id="preset-delete" class="ghost">Delete</button>
+                </div>
+                <div class="preset-row">
+                  <input type="text" id="preset-name" maxlength="40" placeholder="Name the current decks" aria-label="Name for the current decks" />
+                  <button id="preset-save">Save</button>
+                </div>
+                <div class="preset-row preset-files">
+                  <span>Saved in this browser. Export to move them to another device.</span>
+                  <button id="preset-export" class="ghost">Export</button>
+                  <button id="preset-import" class="ghost">Import</button>
+                  <input type="file" id="preset-file" accept=".json,application/json" hidden />
+                </div>
+                <div class="field-note" id="preset-note"></div>
+              </div>
+
+              <details class="deck-panel" id="starter-panel" open>
+                <summary><h3>Starting Deck Builder</h3><span class="db-total" id="starter-total"></span></summary>
+                <div class="deck-tools"><span>Shuffled and dealt four per player</span><button id="starter-reset" class="ghost">Reset starting deck</button></div>
+                <div class="field-note" id="starter-note"></div>
+                <div class="db-grid" id="starter-grid"></div>
+              </details>
+            </div>
 
             <div id="deck-builders">
               <div class="field-note" id="deck-note"></div>
-              <details class="deck-panel deck-a" open>
-                <summary><h3>Deck A Builder</h3><span class="db-total" id="deck-total-a"></span></summary>
-                <div class="deck-tools"><span>Drawn first</span><button id="deck-reset-a" class="ghost">Reset Deck A</button></div>
-                <div class="db-grid" id="deck-grid-a"></div>
-              </details>
-              <details class="deck-panel deck-b">
-                <summary><h3>Deck B Builder</h3><span class="db-total" id="deck-total-b"></span></summary>
-                <div class="deck-tools"><span>Drawn after Deck A runs out</span><button id="deck-reset-b" class="ghost">Reset Deck B</button></div>
-                <div class="db-grid" id="deck-grid-b"></div>
+              <details class="deck-panel" id="deck-panel" open>
+                <summary>
+                  <h3>Deck Builder</h3>
+                  <span class="db-total"><b class="deck-a">A</b> <span id="deck-total-a"></span> · <b class="deck-b">B</b> <span id="deck-total-b"></span></span>
+                </summary>
+                <div class="deck-tools">
+                  <label class="db-effects-toggle"><input type="checkbox" id="db-show-effects" /> Show card effects</label>
+                  <span class="deck-tools-buttons">
+                    <button id="deck-reset-a" class="ghost">Reset Deck A</button>
+                    <button id="deck-reset-b" class="ghost">Reset Deck B</button>
+                  </span>
+                </div>
+                <div class="db-grid deck-grid" id="deck-grid"></div>
               </details>
             </div>
           </div>
