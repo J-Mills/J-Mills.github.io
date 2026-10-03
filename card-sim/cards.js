@@ -318,7 +318,7 @@ function typeTotals(cfg, deck) {
 }
 
 const SEGMENTS = 6;
-const FORECAST_TRIALS = 10000;
+const FORECAST_TRIALS = 2000;
 // Playouts run in short slices so the page stays responsive while they finish.
 const FORECAST_SLICE_MS = 30;
 const FORECAST_HORIZON = 80;
