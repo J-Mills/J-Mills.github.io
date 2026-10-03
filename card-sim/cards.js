@@ -654,11 +654,13 @@ function drawCards(player, n) {
         activateDeckB();
         continue;
       }
-      if (state.cfg.reshuffle && state.discard.some((card) => card.type !== 'god')) {
-        state.deck = shuffle(state.discard);
-        state.discard = [];
-        state.activeDeck = 'recycle';
+      // Only Deck B cards cycle back; A and starter cards stay in the discard.
+      const recycled = state.discard.filter((card) => card.deck === 'B');
+      if (state.cfg.reshuffle && recycled.some((card) => card.type !== 'god')) {
+        state.deck = shuffle(recycled);
+        state.discard = state.discard.filter((card) => card.deck !== 'B');
         state.reshuffles++;
+        addLog(null, [['note', 'Deck B exhausted — ' + recycled.length + ' discarded Deck B cards shuffled back in']]);
       } else {
         state.starved = true;
         break;
@@ -1078,7 +1080,7 @@ function render() {
   document.getElementById('god-note').textContent =
     'Acts take effect when drawn. With auto discard off, use the orange card in the shared hand to discard it and draw a replacement.';
   document.getElementById('deck-note').textContent =
-    'Deck A draws first; Deck B takes over when A runs out. After B runs out, discarded cards reshuffle. ' +
+    'Deck A draws first; Deck B takes over when A runs out. After B runs out, its discarded cards reshuffle into a new Deck B; Deck A cards stay in the discard.' +
     'Changing a quantity resets the table and updates the snap forecast. ' +
     (deckStorageAvailable
       ? 'Deck A, Deck B, and starting deck quantities are saved in this browser.'
@@ -1134,7 +1136,7 @@ function renderStats() {
   const tiles = [
     { k: 'Turn', v: s.started ? s.turn : '—' },
     { k: 'Active', v: s.started ? s.players[s.active].name.replace('Player ', 'P') : '—' },
-    { k: s.activeDeck === 'recycle' ? 'Recycled' : 'Deck ' + s.activeDeck, v: s.deck.length },
+    { k: 'Deck ' + s.activeDeck, v: s.deck.length },
     ...(s.activeDeck === 'A' ? [{ k: 'B reserve', v: s.reserveDeck.length }] : []),
     { k: 'Middle hand', v: s.players[0].hand.length },
     { k: 'Backpacks', v: s.players.reduce((n, p) => n + p.backpack.filter(Boolean).length, 0) },
