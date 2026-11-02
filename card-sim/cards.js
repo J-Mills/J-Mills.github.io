@@ -63,14 +63,14 @@ const CARD_DEFS = [
   { name: 'Defend', type: 'action', qty: 1, effect: 'n/a' },
   { name: 'Brace', type: 'action', qty: 1, effect: 'n/a' },
   { name: 'Run', type: 'action', qty: 5, effect: 'n/a' },
+  { name: 'Mischief Monkey', type: 'action', qty: 1, effect: 'n/a' },
+  { name: 'Termites', type: 'action', qty: 1, effect: 'n/a' },
 
   { name: 'Wrath of the Maw', type: 'god', qty: 0, effect: 'A random bridge segment loses 1 HP', fx: 'weaken' },
   { name: "Xal Tok's Rage", type: 'god', qty: 0, effect: 'A random bridge segment 4–6 loses 1 HP', fx: 'weaken-second-half' },
   { name: "H'mraa's Rage also", type: 'god', qty: 0, effect: 'A random bridge segment 1–3 loses 1 HP', fx: 'weaken-first-half' },
   { name: 'Strength Test', type: 'god', qty: 3, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
   { name: 'Divine Thunderstorm', type: 'god', qty: 1, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
-  { name: 'Mischief Monkey', type: 'god', qty: 1, effect: 'n/a' },
-  { name: 'Termites', type: 'god', qty: 1, effect: 'n/a' },
   { name: 'The Call of Xal Tok', type: 'god', qty: 1, effect: 'Effect not specified' },
   { name: "The Call of H'mraa", type: 'god', qty: 1, effect: 'Effect not specified' },
 ];
