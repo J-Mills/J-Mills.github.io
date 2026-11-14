@@ -1,9 +1,9 @@
 /* ---------------------------------- deck ---------------------------------- */
 
 // Both decks can contain every group. Acts of God fire when drawn.
+// Gifts from the Gods are a separate deck (GIFT_DEFS) that the simulator never draws from.
 const CATEGORIES = [
   { key: 'god', label: 'Acts of God', colour: '#d9694a', note: 'trigger when drawn' },
-  { key: 'gift', label: 'Gifts from the Gods', colour: '#c79a2b', note: 'permanent climb items' },
   { key: 'item', label: 'Items', colour: '#8a5cd6', note: '' },
   { key: 'action', label: 'Actions', colour: '#3b7dd8', note: '' },
 ];
@@ -27,11 +27,6 @@ function isTreasure(card) {
 // The per-card qty values are the former shared defaults, kept for browser-save migration.
 // Current Deck A and Deck B defaults are defined below.
 const CARD_DEFS = [
-  { name: 'Pickaxe', type: 'gift', qty: 1, effect: 'n/a' },
-  { name: 'Climbing Equipment', type: 'gift', qty: 1, effect: 'n/a' },
-  { name: 'Bristol Gold', type: 'gift', qty: 2, effect: 'n/a' },
-  { name: 'Grappling Hook', type: 'gift', qty: 1, effect: 'n/a' },
-
   { name: 'Veridian Talon', type: 'item', qty: 2, effect: 'Degrades a rope segment by 1', fx: 'cut' },
   { name: 'Lasso', type: 'item', qty: 2, effect: 'n/a' },
   { name: 'Wind Fan', type: 'item', qty: 2, effect: 'n/a' },
@@ -63,17 +58,35 @@ const CARD_DEFS = [
   { name: 'Defend', type: 'action', qty: 1, effect: 'n/a' },
   { name: 'Brace', type: 'action', qty: 1, effect: 'n/a' },
   { name: 'Run', type: 'action', qty: 5, effect: 'n/a' },
-  { name: 'Mischief Monkey', type: 'action', qty: 1, effect: 'n/a' },
-  { name: 'Termites', type: 'action', qty: 1, effect: 'n/a' },
 
   { name: 'Wrath of the Maw', type: 'god', qty: 0, effect: 'A random bridge segment loses 1 HP', fx: 'weaken' },
   { name: "Xal Tok's Rage", type: 'god', qty: 0, effect: 'A random bridge segment 4–6 loses 1 HP', fx: 'weaken-second-half' },
   { name: "H'mraa's Rage also", type: 'god', qty: 0, effect: 'A random bridge segment 1–3 loses 1 HP', fx: 'weaken-first-half' },
   { name: 'Strength Test', type: 'god', qty: 3, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
   { name: 'Divine Thunderstorm', type: 'god', qty: 1, effect: 'Removes NET 0.5 HP from all players', fx: 'strain' },
-  { name: 'The Call of Xal Tok', type: 'god', qty: 1, effect: 'Effect not specified' },
-  { name: "The Call of H'mraa", type: 'god', qty: 1, effect: 'Effect not specified' },
+  { name: 'Mischief Monkey', type: 'god', qty: 1, effect: 'Effect not specified' },
+  { name: 'Termites', type: 'god', qty: 1, effect: 'Effect not specified' },
+  { name: 'Toucan Warning', type: 'god', qty: 0, effect: 'Effect not specified' },
+  { name: 'Gale of the Maw', type: 'god', qty: 0, effect: 'Effect not specified' },
+  { name: 'Gravity of the Maw', type: 'god', qty: 0, effect: 'Effect not specified' },
+  { name: 'Scavenge of the Quetzal', type: 'god', qty: 0, effect: 'Effect not specified' },
+  { name: "Gift from H'mraa", type: 'god', qty: 0, effect: 'Effect not specified' },
+  { name: 'Gift from Xal Tok', type: 'god', qty: 0, effect: 'Effect not specified' },
 ];
+
+// Gifts from the Gods: their own deck, built and drawn by hand, outside the simulation.
+const GIFT_CATEGORY = { key: 'gift', label: 'Gifts from the Gods', colour: '#c79a2b' };
+const GIFT_DEFS = [
+  { name: 'Pickaxe', qty: 1, effect: 'n/a' },
+  { name: 'Climbing Equipment', qty: 1, effect: 'n/a' },
+  { name: 'Bristol Gold', qty: 1, effect: 'n/a' },
+  { name: 'Grappling Hook', qty: 1, effect: 'n/a' },
+  { name: 'The Call of Xal Tok', qty: 1, effect: 'Effect not specified' },
+  { name: "The Call of H'mraa", qty: 1, effect: 'Effect not specified' },
+  { name: 'Defect', qty: 1, effect: 'Effect not specified' },
+];
+const DEFAULT_GIFT_QTY = Object.fromEntries(GIFT_DEFS.map((d) => [d.name, d.qty]));
+let giftQty = Object.assign({}, DEFAULT_GIFT_QTY);
 
 const TYPE_COLOUR = {};
 const TYPE_LABEL = {};
@@ -95,10 +108,6 @@ const DEFAULT_QTY = {
     'Divine Thunderstorm': 1,
     "H'mraa's Rage also": 2,
     "Xal Tok's Rage": 2,
-    'The Call of Xal Tok': 1,
-    "The Call of H'mraa": 1,
-    Pickaxe: 1,
-    'Climbing Equipment': 1,
     'Veridian Talon': 1,
     Lasso: 1,
     'Wind Fan': 1,
@@ -127,8 +136,6 @@ const DEFAULT_QTY = {
     'Divine Thunderstorm': 1,
     'Mischief Monkey': 1,
     Termites: 1,
-    'Bristol Gold': 1,
-    'Grappling Hook': 1,
     'Veridian Talon': 1,
     Lasso: 1,
     'Wind Fan': 1,
@@ -224,6 +231,7 @@ function loadDeckBuilderState() {
   }
   const starterOverrides = saved.version === 1 ? quantityOverrides(savedQuantities(saved.starter, DEFAULT_STARTER_QTY), DEFAULT_STARTER_QTY) : saved.starter;
   starterQty = savedQuantities(starterOverrides, DEFAULT_STARTER_QTY);
+  giftQty = savedQuantities(saved.gifts, DEFAULT_GIFT_QTY);
 }
 
 function saveDeckBuilderState() {
@@ -239,6 +247,7 @@ function saveDeckBuilderState() {
         version: 2,
         decks: Object.fromEntries(DECKS.map((deck) => [deck, quantityOverrides(deckQty[deck], DEFAULT_QTY[deck])])),
         starter: quantityOverrides(starterQty, DEFAULT_STARTER_QTY),
+        gifts: quantityOverrides(giftQty, DEFAULT_GIFT_QTY),
       }),
     );
     deckStorageAvailable = true;
@@ -249,7 +258,7 @@ function saveDeckBuilderState() {
 
 /* ------------------------------ saved decks ------------------------------- */
 
-// Named snapshots of Deck A, Deck B and the starting deck, kept in this browser.
+// Named snapshots of Deck A, Deck B, the starting deck and the Gifts deck, kept in this browser.
 const PRESET_STORAGE_KEY = 'card-sim-deck-presets-v1';
 
 function readPresets() {
@@ -273,7 +282,15 @@ function currentDeckSetup() {
   return {
     decks: { A: Object.assign({}, deckQty.A), B: Object.assign({}, deckQty.B) },
     starter: Object.assign({}, starterQty),
+    gifts: Object.assign({}, giftQty),
   };
+}
+
+// Setups saved before the Gifts deck existed kept their gifts in Deck A and Deck B.
+function presetGiftQuantities(setup) {
+  if (setup.gifts) return setup.gifts;
+  const decks = setup.decks || {};
+  return Object.fromEntries(GIFT_DEFS.map((d) => [d.name, DECKS.reduce((sum, deck) => sum + ((decks[deck] && decks[deck][d.name]) || 0), 0)]));
 }
 
 // Presets hold every count, so a card missing from one was not in the game when it was saved.
@@ -286,8 +303,11 @@ function applyDeckSetup(setup) {
     deckQty[deck] = savedQuantities(renamedGodQuantities(setup.decks && setup.decks[deck]), noneOf(DEFAULT_QTY[deck]));
   }
   starterQty = savedQuantities(setup.starter, noneOf(DEFAULT_STARTER_QTY));
+  giftQty = savedQuantities(presetGiftQuantities(setup), noneOf(DEFAULT_GIFT_QTY));
+  resetGiftPile();
   saveDeckBuilderState();
   resetTable();
+  renderGiftDeck();
 }
 
 function deckDefs(cfg, deck) {
@@ -399,7 +419,6 @@ function makePlayers(cfg) {
       hand: [],
       backpack: [],
       bank: null,
-      kept: [],
       fresh: [],
       played: 0,
       health: cfg.startHealth,
@@ -418,12 +437,6 @@ function heldCards() {
     if (p.bank) all.push(p.bank);
     for (const card of p.backpack) if (card && card.deck !== 'Start') all.push(card);
   }
-  return all;
-}
-
-function keptCards() {
-  const all = [];
-  for (const p of state.players) all.push(...p.kept);
   return all;
 }
 
@@ -771,9 +784,7 @@ function applyPlays(player, cards) {
     const key = card.deck + ':' + card.name;
     state.playCounts[key] = (state.playCounts[key] || 0) + 1;
 
-    // Gifts from the Gods are permanent: they stay with the player, out of the cycle.
-    if (card.type === 'gift') player.kept.push(card);
-    else if (card.deck === 'Start' || state.cfg.playedDest === 'removed') state.removed.push(card);
+    if (card.deck === 'Start' || state.cfg.playedDest === 'removed') state.removed.push(card);
     else state.discard.push(card);
 
     if (card.fx === 'heal') healPlayer(player);
@@ -809,8 +820,6 @@ function finishTurn(player, played, discarded, manualPass) {
   if (manualPass) parts.push(['note', state.broken ? 'turn ended as the bridge snapped' : 'passed turn']);
   else if (played.length) parts.push(['play', 'played ' + names(played)]);
   else parts.push(['play', 'played nothing']);
-  const gifts = played.filter((c) => c.type === 'gift');
-  if (gifts.length) parts.push(['keep', 'kept ' + names(gifts)]);
   if (state.turnHeal) {
     parts.push(['heal', 'healed +' + state.turnHeal + ' to ' + state.turnHealTo + ' strength']);
   }
@@ -1015,7 +1024,6 @@ function cloneState(s) {
     hand: shared,
     backpack: p.backpack.slice(),
     bank: p.bank,
-    kept: p.kept.slice(),
     fresh: [],
     played: p.played,
     health: p.health,
@@ -1159,7 +1167,7 @@ function render() {
     'Deck A draws first; Deck B takes over when A runs out. After B runs out, its discarded cards reshuffle into a new Deck B; Deck A cards stay in the discard. ' +
     'Changing a quantity resets the table and updates the snap forecast. ' +
     (deckStorageAvailable
-      ? 'Deck A, Deck B, and starting deck quantities are saved in this browser.'
+      ? 'Deck A, Deck B, starting deck and Gifts deck quantities are saved in this browser.'
       : 'Browser storage is unavailable; deck changes will not persist.');
   document.getElementById('starter-note').textContent =
     starterSize(state.cfg) < state.cfg.playerCount * 4
@@ -1172,7 +1180,6 @@ function render() {
 function renderLegend() {
   const held = {};
   for (const c of heldCards()) held[c.type] = (held[c.type] || 0) + 1;
-  const kept = keptCards().length;
 
   const totals = {};
   for (const deck of DECKS) {
@@ -1183,9 +1190,7 @@ function renderLegend() {
     const total = totals[cat.key] || 0;
     let counts;
     if (cat.key === 'god') counts = total + ' total · ' + state.godsFired + ' triggered';
-    else if (cat.key === 'gift') {
-      counts = total + ' total' + (state.started ? ' · ' + kept + ' kept' : '');
-    } else {
+    else {
       counts = total + ' total' + (state.started ? ' · ' + (held[cat.key] || 0) + ' in hands' : '');
     }
     return (
@@ -1258,7 +1263,7 @@ function healthHTML(p) {
 }
 
 function cardHTML(card, fresh, selectable) {
-  const glyph = { gift: '✦', item: '◆', action: '➤', god: '☄' }[card.type];
+  const glyph = { item: '◆', action: '➤', god: '☄' }[card.type];
   const canSelect = selectable && card.type !== 'god';
   const pendingGod = state.pendingGod && state.pendingGod.uid === card.uid;
   const cls = (fresh ? ' fresh' : '') + (canSelect ? ' selectable' : '') + (state.selected.includes(card.uid) ? ' selected' : '');
@@ -1307,14 +1312,8 @@ function handHTML(cards, fresh, selectable) {
     : '<div class="empty-hand">' + (state.started ? 'empty hand' : 'not dealt yet') + '</div>';
 }
 
-function keptHTML(p) {
-  if (!p.kept.length) return '';
-  const chips = p.kept.map((c) => '<span class="kept-chip">' + esc(c.name) + '</span>').join('');
-  return '<div class="kept"><span class="kept-label">Kept</span>' + chips + '</div>';
-}
-
 function playerGodPoints(player) {
-  const held = [...player.backpack, player.bank, ...player.kept];
+  const held = [...player.backpack, player.bank];
   return held.reduce(
     (total, card) => {
       if (card && card.points) {
@@ -1378,7 +1377,6 @@ function sharedPanelHTML() {
         p.played +
         ' played</em></span>' +
         healthHTML(p) +
-        keptHTML(p) +
         '<div class="backpack-row">' +
         slots +
         '</div>' +
@@ -1837,6 +1835,94 @@ function setStarterQty(name, value) {
   return true;
 }
 
+/* ------------------------------- gifts deck ------------------------------- */
+
+// The Gifts deck sits apart from the simulation: changing or drawing from it
+// never resets the table, touches Deck A or B, or affects the forecast.
+let giftPile = [];
+let giftDrawn = [];
+let giftBuilderBuilt = false;
+
+function giftDeckSize() {
+  return GIFT_DEFS.reduce((sum, d) => sum + (giftQty[d.name] || 0), 0);
+}
+
+function resetGiftPile() {
+  giftPile = shuffle(GIFT_DEFS.flatMap((d) => new Array(giftQty[d.name] || 0).fill(d.name)));
+  giftDrawn = [];
+}
+
+function setGiftQty(name, value) {
+  const n = Math.max(0, Math.min(MAX_QTY, Math.round(Number(value) || 0)));
+  if (giftQty[name] === n) return false;
+  giftQty[name] = n;
+  return true;
+}
+
+function renderGiftDeck() {
+  if (!giftBuilderBuilt) {
+    document.getElementById('gift-grid').innerHTML =
+      '<div class="db-cat">' +
+      '<div class="db-cat-head"><span class="db-cat-label"><span class="swatch" style="background:' +
+      GIFT_CATEGORY.colour +
+      '"></span>' +
+      esc(GIFT_CATEGORY.label) +
+      '</span></div>' +
+      GIFT_DEFS.map((def) => {
+        const effect = def.effect && def.effect !== 'n/a' ? def.effect : 'No effect set';
+        return (
+          '<div class="db-row"><span class="db-name" title="' +
+          esc(effect) +
+          '">' +
+          esc(def.name) +
+          '<em>' +
+          esc(effect) +
+          '</em></span>' +
+          '<span class="db-step"><button class="db-btn" data-card="' +
+          esc(def.name) +
+          '" data-delta="-1" aria-label="one fewer ' +
+          esc(def.name) +
+          '">−</button>' +
+          '<input class="db-qty" type="number" min="0" max="' +
+          MAX_QTY +
+          '" step="1" data-card="' +
+          esc(def.name) +
+          '" value="' +
+          (giftQty[def.name] || 0) +
+          '" aria-label="' +
+          esc(def.name) +
+          ' in the Gifts deck" />' +
+          '<button class="db-btn" data-card="' +
+          esc(def.name) +
+          '" data-delta="1" aria-label="one more ' +
+          esc(def.name) +
+          '">+</button></span></div>'
+        );
+      }).join('') +
+      '</div>';
+    giftBuilderBuilt = true;
+  }
+  for (const input of document.querySelectorAll('#gift-grid .db-qty')) {
+    const value = String(giftQty[input.dataset.card] || 0);
+    if (document.activeElement !== input && input.value !== value) input.value = value;
+  }
+  const size = giftDeckSize();
+  document.getElementById('gift-total').textContent = size + ' cards';
+  document.getElementById('gift-reset').disabled = GIFT_DEFS.every((d) => giftQty[d.name] === DEFAULT_GIFT_QTY[d.name]);
+  document.getElementById('gift-draw').disabled = giftPile.length === 0;
+  document.getElementById('gift-shuffle').disabled = giftDrawn.length === 0;
+  document.getElementById('gift-pile-count').textContent = giftPile.length + ' of ' + size + ' left';
+  document.getElementById('gift-drawn').innerHTML = giftDrawn.length
+    ? giftDrawn.map((name, i) => '<span class="gift-chip' + (i === 0 ? ' latest' : '') + '">' + esc(name) + '</span>').join('')
+    : '<span class="gift-empty">' + (size ? 'Nothing drawn yet' : 'The Gifts deck is empty') + '</span>';
+}
+
+function giftsChanged() {
+  saveDeckBuilderState();
+  resetGiftPile();
+  renderGiftDeck();
+}
+
 /* -------------------------------- trackers -------------------------------- */
 
 function countBy(cards) {
@@ -1853,7 +1939,6 @@ function renderTracker() {
   const inDeck = countBy(state.deck);
   const inReserve = countBy(state.reserveDeck);
   const inDiscard = countBy(state.discard);
-  const kept = countBy(keptCards());
   const out = countBy(state.removed);
   const cell = (n) => '<td class="num' + (n ? '' : ' zero') + '">' + n + '</td>';
 
@@ -1875,7 +1960,6 @@ function renderTracker() {
           cell((inDeck[key] || 0) + (inReserve[key] || 0)) +
           cell(inHand[key] || 0) +
           cell(inDiscard[key] || 0) +
-          cell(kept[key] || 0) +
           cell(out[key] || 0) +
           cell(state.playCounts[key] || 0) +
           cell(state.godFires[key] || 0) +
@@ -1887,7 +1971,7 @@ function renderTracker() {
 
     document.getElementById('tracker-' + deck.toLowerCase()).innerHTML =
       '<thead><tr><th>Card</th><th>Group</th><th class="num">Qty</th><th class="num">Deck</th>' +
-      '<th class="num">Hands</th><th class="num">Discard</th><th class="num">Kept</th><th class="num">Out</th>' +
+      '<th class="num">Hands</th><th class="num">Discard</th><th class="num">Out</th>' +
       '<th class="num">Played</th><th class="num">Triggered</th><th class="num">Drawn</th></tr></thead><tbody>' +
       rows +
       '</tbody>';
@@ -2059,6 +2143,33 @@ document.getElementById('starter-reset').addEventListener('click', (e) => {
   deckChanged();
 });
 
+document.getElementById('gift-grid').addEventListener('click', (e) => {
+  const btn = e.target.closest('.db-btn');
+  if (!btn) return;
+  if (setGiftQty(btn.dataset.card, (giftQty[btn.dataset.card] || 0) + Number(btn.dataset.delta))) giftsChanged();
+});
+document.getElementById('gift-grid').addEventListener('change', (e) => {
+  const input = e.target.closest('.db-qty');
+  if (!input) return;
+  setGiftQty(input.dataset.card, input.value);
+  input.value = String(giftQty[input.dataset.card]);
+  giftsChanged();
+});
+document.getElementById('gift-reset').addEventListener('click', (e) => {
+  e.preventDefault();
+  giftQty = Object.assign({}, DEFAULT_GIFT_QTY);
+  giftsChanged();
+});
+document.getElementById('gift-draw').addEventListener('click', () => {
+  if (!giftPile.length) return;
+  giftDrawn.unshift(giftPile.pop());
+  renderGiftDeck();
+});
+document.getElementById('gift-shuffle').addEventListener('click', () => {
+  resetGiftPile();
+  renderGiftDeck();
+});
+
 document.getElementById('tracker-tabs').addEventListener('click', (e) => {
   const tab = e.target.closest('.tab');
   if (!tab) return;
@@ -2206,5 +2317,7 @@ document.getElementById('speed').addEventListener('change', () => {
 );
 
 loadDeckBuilderState();
+resetGiftPile();
 resetTable();
+renderGiftDeck();
 renderPresets();

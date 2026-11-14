@@ -686,16 +686,12 @@
       .card.t-item {
         border-top-color: #8a5cd6;
       }
-      .card.t-gift {
-        border-top-color: #c79a2b;
-      }
       .card.t-god {
         border-top-color: #d9694a;
       }
 
       .card.t-action .card-glyph { color: #3b7dd8; }
       .card.t-item .card-glyph { color: #8a5cd6; }
-      .card.t-gift .card-glyph { color: #c79a2b; }
       .card.t-god .card-glyph { color: #d9694a; }
 
       .hand .card.t-god {
@@ -794,31 +790,51 @@
         letter-spacing: 0.05em;
       }
 
-      /* ---------- kept gifts ---------- */
+      /* ---------- gifts deck ---------- */
 
-      .kept {
+      .deck-panel.gift-panel { border-left: 4px solid #c79a2b; }
+
+      .gift-draw-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.8rem;
+      }
+
+      .gift-draw-row button {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.78rem;
+      }
+
+      .gift-drawn {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         gap: 0.3rem;
-        margin-bottom: 0.6rem;
+        margin-top: 0.6rem;
+        min-height: 1.4rem;
       }
 
-      .kept-label {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #b08c22;
-      }
-
-      .kept-chip {
-        padding: 0.1rem 0.35rem;
+      .gift-chip {
+        padding: 0.1rem 0.4rem;
         border: 1px solid #e6d08a;
         border-radius: 3px;
         background: #fdf7e3;
         color: #7d6312;
-        font-size: 0.68rem;
+        font-size: 0.72rem;
         font-weight: 600;
+      }
+
+      .gift-chip.latest {
+        border-color: #c79a2b;
+        background: #f6e3a6;
+        color: #5c4708;
+      }
+
+      .gift-empty {
+        color: #aaa;
+        font-size: 0.72rem;
       }
 
       /* ---------- saved decks ---------- */
@@ -1861,6 +1877,18 @@
                 <div class="db-grid deck-grid" id="deck-grid"></div>
               </details>
             </div>
+
+            <details class="deck-panel gift-panel" id="gift-panel" open>
+              <summary><h3>Gifts from the Gods</h3><span class="db-total" id="gift-total"></span></summary>
+              <div class="deck-tools"><span>A separate deck, drawn by hand. It never enters the simulation.</span><button id="gift-reset" class="ghost">Reset Gifts deck</button></div>
+              <div class="gift-draw-row">
+                <button id="gift-draw" class="secondary">Draw a gift</button>
+                <button id="gift-shuffle" class="ghost">Shuffle all back</button>
+                <span class="db-total" id="gift-pile-count"></span>
+              </div>
+              <div class="gift-drawn" id="gift-drawn" aria-live="polite"></div>
+              <div class="db-grid" id="gift-grid"></div>
+            </details>
           </div>
         </div>
 
