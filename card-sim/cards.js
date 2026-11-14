@@ -58,6 +58,7 @@ const CARD_DEFS = [
   { name: 'Defend', type: 'action', qty: 1, effect: 'n/a' },
   { name: 'Brace', type: 'action', qty: 1, effect: 'n/a' },
   { name: 'Run', type: 'action', qty: 5, effect: 'n/a' },
+  { name: 'Switch', type: 'action', qty: 0, effect: 'n/a' },
 
   { name: 'Wrath of the Maw', type: 'god', qty: 0, effect: 'A random bridge segment loses 1 HP', fx: 'weaken' },
   { name: "Xal Tok's Rage", type: 'god', qty: 0, effect: 'A random bridge segment 4–6 loses 1 HP', fx: 'weaken-second-half' },
